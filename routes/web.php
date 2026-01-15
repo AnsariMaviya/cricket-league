@@ -39,6 +39,7 @@ Route::prefix('api/v1')->group(function () {
     Route::get('/players', [ApiController::class, 'players']);
     Route::get('/matches', [ApiController::class, 'matches']);
     Route::get('/venues', [ApiController::class, 'venues']);
+    Route::get('/search', [ApiController::class, 'search']);
     Route::get('/matches/{id}', [ApiController::class, 'matchDetails']);
     Route::get('/teams/{id}', [ApiController::class, 'teamDetails']);
     Route::get('/players/{id}', [ApiController::class, 'playerDetails']);

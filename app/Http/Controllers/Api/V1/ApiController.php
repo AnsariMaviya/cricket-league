@@ -61,7 +61,7 @@ class ApiController extends Controller
             ];
         });
 
-        return $this->apiResponse($stats, 'Dashboard statistics retrieved successfully');
+        return $this->successResponse($stats, 'Dashboard statistics retrieved successfully');
     }
 
     /**
@@ -97,29 +97,11 @@ class ApiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->apiResponse(null, 'Validation failed', 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
-        $perPage = $request->get('per_page', 15);
-        $search = $request->get('search');
-        $countryId = $request->get('country_id');
-
-        $query = Team::with(['country', 'players']);
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('team_name', 'LIKE', "%{$search}%")
-                  ->orWhere('in_match', 'LIKE', "%{$search}%");
-            });
-        }
-
-        if ($countryId) {
-            $query->where('country_id', $countryId);
-        }
-
-        $teams = $query->paginate($perPage);
-
-        return $this->apiResponse($teams, 'Teams retrieved successfully');
+        $teams = $this->teamService->getAllTeams($request->all());
+        return $this->successResponse($teams, 'Teams retrieved successfully');
     }
 
     /**
@@ -138,49 +120,11 @@ class ApiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->apiResponse(null, 'Validation failed', 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
-        $perPage = $request->get('per_page', 15);
-        $search = $request->get('search');
-        $teamId = $request->get('team_id');
-        $role = $request->get('role');
-        $minAge = $request->get('min_age');
-        $maxAge = $request->get('max_age');
-
-        $query = Player::with(['team.country']);
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('role', 'LIKE', "%{$search}%")
-                  ->orWhere('batting_style', 'LIKE', "%{$search}%")
-                  ->orWhere('bowling_style', 'LIKE', "%{$search}%");
-            });
-        }
-
-        if ($teamId) {
-            $query->where('team_id', $teamId);
-        }
-
-        if ($role) {
-            $query->where('role', $role);
-        }
-
-        if ($minAge || $maxAge) {
-            $query->whereHas('team', function ($q) use ($minAge, $maxAge) {
-                if ($minAge) {
-                    $q->where('dob', '<=', now()->subYears($minAge));
-                }
-                if ($maxAge) {
-                    $q->where('dob', '>=', now()->subYears($maxAge));
-                }
-            });
-        }
-
-        $players = $query->paginate($perPage);
-
-        return $this->apiResponse($players, 'Players retrieved successfully');
+        $players = $this->playerService->getAllPlayers($request->all());
+        return $this->successResponse($players, 'Players retrieved successfully');
     }
 
     /**
@@ -201,66 +145,11 @@ class ApiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->apiResponse(null, 'Validation failed', 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
-        $perPage = $request->get('per_page', 15);
-        $search = $request->get('search');
-        $venueId = $request->get('venue_id');
-        $teamId = $request->get('team_id');
-        $status = $request->get('status');
-        $matchType = $request->get('match_type');
-        $dateFrom = $request->get('date_from');
-        $dateTo = $request->get('date_to');
-
-        $query = CricketMatch::with(['firstTeam.country', 'secondTeam.country', 'venue']);
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('match_type', 'LIKE', "%{$search}%")
-                  ->orWhere('outcome', 'LIKE', "%{$search}%")
-                  ->orWhereHas('firstTeam', function ($subQ) use ($search) {
-                      $subQ->where('team_name', 'LIKE', "%{$search}%");
-                  })
-                  ->orWhereHas('secondTeam', function ($subQ) use ($search) {
-                      $subQ->where('team_name', 'LIKE', "%{$search}%");
-                  })
-                  ->orWhereHas('venue', function ($subQ) use ($search) {
-                      $subQ->where('name', 'LIKE', "%{$search}%");
-                  });
-            });
-        }
-
-        if ($venueId) {
-            $query->where('venue_id', $venueId);
-        }
-
-        if ($teamId) {
-            $query->where(function ($q) use ($teamId) {
-                $q->where('first_team_id', $teamId)
-                  ->orWhere('second_team_id', $teamId);
-            });
-        }
-
-        if ($status) {
-            $query->where('status', $status);
-        }
-
-        if ($matchType) {
-            $query->where('match_type', $matchType);
-        }
-
-        if ($dateFrom) {
-            $query->whereDate('match_date', '>=', $dateFrom);
-        }
-
-        if ($dateTo) {
-            $query->whereDate('match_date', '<=', $dateTo);
-        }
-
-        $matches = $query->orderBy('match_date', 'desc')->paginate($perPage);
-
-        return $this->apiResponse($matches, 'Matches retrieved successfully');
+        $matches = $this->matchService->getAllMatches($request->all());
+        return $this->successResponse($matches, 'Matches retrieved successfully');
     }
 
     /**
@@ -276,29 +165,11 @@ class ApiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->apiResponse(null, 'Validation failed', 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
-        $perPage = $request->get('per_page', 15);
-        $search = $request->get('search');
-        $city = $request->get('city');
-
-        $query = Venue::withCount('matches');
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('address', 'LIKE', "%{$search}%");
-            });
-        }
-
-        if ($city) {
-            $query->where('city', 'LIKE', "%{$city}%");
-        }
-
-        $venues = $query->paginate($perPage);
-
-        return $this->apiResponse($venues, 'Venues retrieved successfully');
+        $venues = $this->venueService->getAllVenues($request->all());
+        return $this->successResponse($venues, 'Venues retrieved successfully');
     }
 
     /**
@@ -306,23 +177,12 @@ class ApiController extends Controller
      */
     public function matchDetails($id): JsonResponse
     {
-        $cacheKey = "api_match_details_{$id}";
-        
-        $match = Cache::remember($cacheKey, 600, function () use ($id) {
-            return CricketMatch::with([
-                'firstTeam.country',
-                'secondTeam.country',
-                'venue',
-                'firstTeam.players',
-                'secondTeam.players'
-            ])->find($id);
-        });
-
-        if (!$match) {
-            return $this->apiResponse(null, 'Match not found', 404);
+        try {
+            $match = $this->matchService->getMatchById($id);
+            return $this->successResponse($match, 'Match details retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->notFoundResponse('Match');
         }
-
-        return $this->apiResponse($match, 'Match details retrieved successfully');
     }
 
     /**
@@ -330,35 +190,12 @@ class ApiController extends Controller
      */
     public function teamDetails($id): JsonResponse
     {
-        $cacheKey = "api_team_details_{$id}";
-        
-        $team = Cache::remember($cacheKey, 600, function () use ($id) {
-            return Team::with([
-                'country',
-                'players',
-                'homeMatches' => function ($q) {
-                    $q->with('venue')->orderBy('match_date', 'desc')->limit(10);
-                },
-                'awayMatches' => function ($q) {
-                    $q->with('venue')->orderBy('match_date', 'desc')->limit(10);
-                }
-            ])->find($id);
-        });
-
-        if (!$team) {
-            return $this->apiResponse(null, 'Team not found', 404);
+        try {
+            $team = $this->teamService->getTeamById($id);
+            return $this->successResponse($team, 'Team details retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->notFoundResponse('Team');
         }
-
-        // Combine home and away matches
-        $allMatches = $team->homeMatches->concat($team->awayMatches)
-            ->sortByDesc('match_date')
-            ->values();
-
-        $teamData = $team->toArray();
-        $teamData['recent_matches'] = $allMatches->take(10);
-        unset($teamData['home_matches'], $teamData['away_matches']);
-
-        return $this->apiResponse($teamData, 'Team details retrieved successfully');
     }
 
     /**
@@ -366,27 +203,83 @@ class ApiController extends Controller
      */
     public function playerDetails($id): JsonResponse
     {
-        $cacheKey = "api_player_details_{$id}";
-        
-        $player = Cache::remember($cacheKey, 600, function () use ($id) {
-            return Player::with([
-                'team.country',
-                'team.homeMatches' => function ($q) use ($id) {
-                    $q->with('venue')->orderBy('match_date', 'desc')->limit(10);
-                },
-                'team.awayMatches' => function ($q) use ($id) {
-                    $q->with('venue')->orderBy('match_date', 'desc')->limit(10);
-                }
-            ])->find($id);
-        });
+        try {
+            $player = $this->playerService->getPlayerById($id);
+            return $this->successResponse($player, 'Player details retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->notFoundResponse('Player');
+        }
+    }
 
-        if (!$player) {
-            return $this->apiResponse(null, 'Player not found', 404);
+    /**
+     * Global search across all entities
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'q' => 'required|string|max:255',
+            'type' => 'string|in:all,countries,teams,players,venues,matches',
+            'per_page' => 'integer|min:1|max:50'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
         }
 
-        $playerData = $player->toArray();
-        $playerData['age'] = $player->dob?->age;
+        $query = $request->get('q');
+        $type = $request->get('type', 'all');
+        $perPage = $request->get('per_page', 20);
+        $results = [];
 
-        return $this->apiResponse($playerData, 'Player details retrieved successfully');
+        try {
+            if ($type === 'all' || $type === 'countries') {
+                $countries = $this->countryService->getAllCountries(['search' => $query, 'per_page' => $type === 'countries' ? $perPage : 10]);
+                if ($countries->data) {
+                    $results = array_merge($results, collect($countries->data)->map(function ($country) {
+                        return array_merge((array) $country, ['type' => 'country']);
+                    })->toArray());
+                }
+            }
+
+            if ($type === 'all' || $type === 'teams') {
+                $teams = $this->teamService->getAllTeams(['search' => $query, 'per_page' => $type === 'teams' ? $perPage : 10]);
+                if ($teams->data) {
+                    $results = array_merge($results, collect($teams->data)->map(function ($team) {
+                        return array_merge((array) $team, ['type' => 'team']);
+                    })->toArray());
+                }
+            }
+
+            if ($type === 'all' || $type === 'players') {
+                $players = $this->playerService->getAllPlayers(['search' => $query, 'per_page' => $type === 'players' ? $perPage : 10]);
+                if ($players->data) {
+                    $results = array_merge($results, collect($players->data)->map(function ($player) {
+                        return array_merge((array) $player, ['type' => 'player']);
+                    })->toArray());
+                }
+            }
+
+            if ($type === 'all' || $type === 'venues') {
+                $venues = $this->venueService->getAllVenues(['search' => $query, 'per_page' => $type === 'venues' ? $perPage : 10]);
+                if ($venues->data) {
+                    $results = array_merge($results, collect($venues->data)->map(function ($venue) {
+                        return array_merge((array) $venue, ['type' => 'venue']);
+                    })->toArray());
+                }
+            }
+
+            if ($type === 'all' || $type === 'matches') {
+                $matches = $this->matchService->getAllMatches(['search' => $query, 'per_page' => $type === 'matches' ? $perPage : 10]);
+                if ($matches->data) {
+                    $results = array_merge($results, collect($matches->data)->map(function ($match) {
+                        return array_merge((array) $match, ['type' => 'match']);
+                    })->toArray());
+                }
+            }
+
+            return $this->successResponse(array_slice($results, 0, $perPage), 'Search results retrieved successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Search failed', 500);
+        }
     }
 }
