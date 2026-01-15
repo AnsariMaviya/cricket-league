@@ -16,14 +16,6 @@
     @vite('resources/js/app.js')
 </head>
 <body class="bg-gray-100">
-    <div id="app">
-        <div class="flex items-center justify-center min-h-screen">
-            <div class="text-center">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p class="text-gray-600">Loading Cricket League...</p>
-            </div>
-        </div>
-    </div>
     @yield('content')
 </body>
 </html>
