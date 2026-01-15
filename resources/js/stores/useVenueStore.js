@@ -22,12 +22,12 @@ export const useVenueStore = defineStore('venue', {
             try {
                 const response = await api.getVenues(params);
                 if (response.data.success) {
-                    this.venues = response.data.data.data;
+                    this.venues = response.data.data;
                     this.pagination = {
-                        current_page: response.data.data.current_page,
-                        last_page: response.data.data.last_page,
-                        per_page: response.data.data.per_page,
-                        total: response.data.data.total
+                        current_page: response.data.current_page,
+                        last_page: response.data.last_page,
+                        per_page: response.data.per_page,
+                        total: response.data.total
                     };
                 }
             } catch (error) {

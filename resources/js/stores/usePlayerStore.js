@@ -22,12 +22,12 @@ export const usePlayerStore = defineStore('player', {
             try {
                 const response = await api.getPlayers(params);
                 if (response.data.success) {
-                    this.players = response.data.data.data;
+                    this.players = response.data.data;
                     this.pagination = {
-                        current_page: response.data.data.current_page,
-                        last_page: response.data.data.last_page,
-                        per_page: response.data.data.per_page,
-                        total: response.data.data.total
+                        current_page: response.data.current_page,
+                        last_page: response.data.last_page,
+                        per_page: response.data.per_page,
+                        total: response.data.total
                     };
                 }
             } catch (error) {

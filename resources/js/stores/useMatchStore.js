@@ -22,12 +22,12 @@ export const useMatchStore = defineStore('match', {
             try {
                 const response = await api.getMatches(params);
                 if (response.data.success) {
-                    this.matches = response.data.data.data;
+                    this.matches = response.data.data;
                     this.pagination = {
-                        current_page: response.data.data.current_page,
-                        last_page: response.data.data.last_page,
-                        per_page: response.data.data.per_page,
-                        total: response.data.data.total
+                        current_page: response.data.current_page,
+                        last_page: response.data.last_page,
+                        per_page: response.data.per_page,
+                        total: response.data.total
                     };
                 }
             } catch (error) {
