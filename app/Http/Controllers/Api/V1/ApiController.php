@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\CountryService;
+use App\Services\TeamService;
+use App\Services\PlayerService;
+use App\Services\VenueService;
+use App\Services\MatchService;
 use App\Models\Country;
 use App\Models\Team;
 use App\Models\Player;
@@ -12,20 +17,30 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\HasApiResponses;
 
 class ApiController extends Controller
 {
-    /**
-     * API Response helper
-     */
-    protected function apiResponse($data = null, $message = 'Success', $status = 200): JsonResponse
-    {
-        return response()->json([
-            'success' => $status < 400,
-            'message' => $message,
-            'data' => $data,
-            'timestamp' => now()->toISOString()
-        ], $status);
+    use HasApiResponses;
+
+    protected CountryService $countryService;
+    protected TeamService $teamService;
+    protected PlayerService $playerService;
+    protected VenueService $venueService;
+    protected MatchService $matchService;
+
+    public function __construct(
+        CountryService $countryService,
+        TeamService $teamService,
+        PlayerService $playerService,
+        VenueService $venueService,
+        MatchService $matchService
+    ) {
+        $this->countryService = $countryService;
+        $this->teamService = $teamService;
+        $this->playerService = $playerService;
+        $this->venueService = $venueService;
+        $this->matchService = $matchService;
     }
 
     /**
@@ -61,24 +76,11 @@ class ApiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $this->apiResponse(null, 'Validation failed', 422);
+            return $this->validationErrorResponse($validator->errors());
         }
 
-        $perPage = $request->get('per_page', 15);
-        $search = $request->get('search');
-
-        $query = Country::withCount('teams');
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('short_name', 'LIKE', "%{$search}%");
-            });
-        }
-
-        $countries = $query->paginate($perPage);
-
-        return $this->apiResponse($countries, 'Countries retrieved successfully');
+        $countries = $this->countryService->getAllCountries($request->all());
+        return $this->successResponse($countries, 'Countries retrieved successfully');
     }
 
     /**
