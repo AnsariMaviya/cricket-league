@@ -2,8 +2,30 @@
     <div class="analytics">
         <!-- Header -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Analytics Dashboard</h1>
-            <p class="text-gray-600 mt-2">Comprehensive cricket league statistics and insights</p>
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Analytics Dashboard</h1>
+                    <p class="text-gray-600 mt-2">Comprehensive cricket league statistics and insights</p>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="viewMode = 'cards'" 
+                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
+                        </svg>
+                        Card View
+                    </button>
+                    <button @click="viewMode = 'table'" 
+                            :class="viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14" />
+                        </svg>
+                        Table View
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Stats Cards -->
@@ -23,7 +45,7 @@
         </div>
 
         <!-- Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div v-if="viewMode === 'cards'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <!-- Teams by Country Chart -->
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-lg font-bold mb-4 text-gray-800">Teams by Country</h2>
@@ -58,6 +80,126 @@
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                 </div>
                 <BarChart v-else :data="venueCapacityData" :options="horizontalBarOptions" />
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div v-else class="space-y-6 mb-8">
+            <!-- Teams by Country Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-800">Teams by Country</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teams Count</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="(count, country) in teamsByCountryData.datasets[0].data" :key="country">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ teamsByCountryData.labels[teamsByCountryData.datasets[0].data.indexOf(count)] }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ count }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ ((count / teamsByCountryData.datasets[0].data.reduce((a, b) => a + b, 0)) * 100).toFixed(1) }}%
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Players by Role Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-800">Players by Role</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Players Count</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="(count, role) in playersByRoleData.datasets[0].data" :key="role">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ playersByRoleData.labels[playersByRoleData.datasets[0].data.indexOf(count)] }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ count }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ ((count / playersByRoleData.datasets[0].data.reduce((a, b) => a + b, 0)) * 100).toFixed(1) }}%
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Matches by Status Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-800">Matches by Status</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matches Count</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="(count, status) in matchesByStatusData.datasets[0].data" :key="status">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ matchesByStatusData.labels[matchesByStatusData.datasets[0].data.indexOf(count)] }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ count }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ ((count / matchesByStatusData.datasets[0].data.reduce((a, b) => a + b, 0)) * 100).toFixed(1) }}%
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Venue Capacity Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-bold mb-4 text-gray-800">Top Venues by Capacity</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Venue</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr v-for="(capacity, venue) in venueCapacityData.datasets[0].data" :key="venue">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ venueCapacityData.labels[venueCapacityData.datasets[0].data.indexOf(capacity)] }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ capacity?.toLocaleString() || 0 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <!-- City would need to be added to the data -->
+                                    -
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -132,6 +274,7 @@ export default {
         });
         const stats = ref([]);
         const recentActivity = ref([]);
+        const viewMode = ref('cards');
         
         const chartOptions = {
             responsive: true,
@@ -222,7 +365,7 @@ export default {
                 // Teams by country
                 const teamsResponse = await api.getTeams({ per_page: 100 });
                 if (teamsResponse.data.success) {
-                    const teams = teamsResponse.data.data.data;
+                    const teams = teamsResponse.data.data;
                     const countryCounts = {};
                     teams.forEach(team => {
                         const country = team.country?.name || 'Unknown';
@@ -243,7 +386,7 @@ export default {
                 // Players by role
                 const playersResponse = await api.getPlayers({ per_page: 100 });
                 if (playersResponse.data.success) {
-                    const players = playersResponse.data.data.data;
+                    const players = playersResponse.data;
                     const roleCounts = {};
                     players.forEach(player => {
                         const role = player.role || 'Unknown';
@@ -263,7 +406,7 @@ export default {
                 // Matches by status
                 const matchesResponse = await api.getMatches({ per_page: 100 });
                 if (matchesResponse.data.success) {
-                    const matches = matchesResponse.data.data.data;
+                    const matches = matchesResponse.data;
                     const statusCounts = {};
                     matches.forEach(match => {
                         const status = match.status || 'Unknown';
@@ -282,7 +425,7 @@ export default {
                 // Venue capacity
                 const venuesResponse = await api.getVenues({ per_page: 100 });
                 if (venuesResponse.data.success) {
-                    const venues = venuesResponse.data.data.data;
+                    const venues = venuesResponse.data;
                     const topVenues = venues
                         .filter(v => v.capacity)
                         .sort((a, b) => b.capacity - a.capacity)
@@ -317,6 +460,7 @@ export default {
             loading,
             stats,
             recentActivity,
+            viewMode,
             chartOptions,
             horizontalBarOptions,
             teamsByCountryData,
