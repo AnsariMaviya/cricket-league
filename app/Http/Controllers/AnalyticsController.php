@@ -39,6 +39,9 @@ class AnalyticsController extends Controller
      */
     private function getOverviewStats()
     {
+        $teamsWithPlayerCount = Team::withCount('players')->get();
+        $venuesWithMatchCount = Venue::withCount('matches')->get();
+        
         return [
             'total_countries' => Country::count(),
             'total_teams' => Team::count(),
@@ -48,8 +51,8 @@ class AnalyticsController extends Controller
             'completed_matches' => CricketMatch::where('status', 'completed')->count(),
             'upcoming_matches' => CricketMatch::where('status', 'scheduled')->count(),
             'live_matches' => CricketMatch::where('status', 'live')->count(),
-            'average_players_per_team' => Team::withCount('players')->avg('players_count'),
-            'average_matches_per_venue' => Venue::withCount('matches')->avg('matches_count'),
+            'average_players_per_team' => $teamsWithPlayerCount->avg('players_count'),
+            'average_matches_per_venue' => $venuesWithMatchCount->avg('matches_count'),
         ];
     }
 

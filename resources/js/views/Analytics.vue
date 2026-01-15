@@ -61,7 +61,7 @@
                 <div v-if="loading.charts" class="h-64 flex items-center justify-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                 </div>
-                <BarChart v-else :data="playersByRoleData" :options="chartOptions" />
+                <BarChart v-else :key="playersByRoleData.datasets[0].data.length" :data="playersByRoleData" :options="chartOptions" />
             </div>
 
             <!-- Matches by Status Chart -->
