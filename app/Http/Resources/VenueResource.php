@@ -14,6 +14,18 @@ class VenueResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'venue_id' => $this->venue_id,
+            'name' => $this->name,
+            'address' => $this->address,
+            'city' => $this->city,
+            'country' => $this->country,
+            'capacity' => $this->capacity,
+            'established_year' => $this->established_year,
+            'description' => $this->description,
+            'matches_count' => $this->when(isset($this->matches_count), $this->matches_count),
+            'created_at' => $this->created_at->toISOString(),
+            'updated_at' => $this->updated_at->toISOString(),
+        ];
     }
 }
