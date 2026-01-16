@@ -276,7 +276,8 @@ export default {
 
         const viewTeams = (countryId) => {
             // Navigate to teams page with country filter
-            router.push({ name: 'teams', query: { country_id: countryId } });
+            console.log('🔍 DEBUG: Navigating to teams with country_id:', countryId);
+            router.push({ path: '/teams', query: { country_id: countryId } });
         };
 
         return {

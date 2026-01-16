@@ -1,17 +1,37 @@
 <template>
     <div class="teams">
-        <DataTable
-            title="Teams"
-            :columns="columns"
-            :data="teamStore.teams"
-            :loading="teamStore.loading"
-            :error="teamStore.error"
-            :pagination="teamStore.pagination"
-            item-key="team_id"
-            empty-message="No teams found"
-            @page-change="handlePageChange"
-        >
-            <template #header-actions>
+        <!-- Header with View Toggle -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Teams Management</h1>
+                    <p class="text-gray-600 mt-2">Manage cricket teams and their players</p>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="viewMode = 'cards'" 
+                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
+                        </svg>
+                        Card View
+                    </button>
+                    <button @click="viewMode = 'table'" 
+                            :class="viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14" />
+                        </svg>
+                        Table View
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card View -->
+        <div v-if="viewMode === 'cards'">
+            <!-- Add Team Button -->
+            <div class="flex justify-end mb-6">
                 <button @click="openCreateModal" 
                         class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
                     <span class="flex items-center gap-2">
@@ -21,7 +41,76 @@
                         Add Team
                     </span>
                 </button>
-            </template>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="teamStore.loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
+                <p class="text-gray-600">Loading teams...</p>
+            </div>
+
+            <!-- Teams Grid -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div v-for="team in teamStore.teams" :key="team.team_id" 
+                     class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    <div class="bg-gradient-to-r from-green-600 to-green-700 text-white p-4">
+                        <h2 class="text-xl font-semibold">{{ team.team_name }}</h2>
+                        <p class="text-green-100 text-sm">{{ team.country?.name ?? 'N/A' }}</p>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-gray-600 text-sm mb-4">{{ team.players_count || 0 }} Players</p>
+                        <p v-if="team.in_match" class="text-gray-500 text-xs mb-4">{{ team.in_match }}</p>
+                        <div class="flex space-x-2">
+                            <button @click="viewPlayers(team.team_id)" 
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                Players
+                            </button>
+                            <button @click="openEditModal(team)" 
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm transition">
+                                Edit
+                            </button>
+                            <button @click="confirmDelete(team)" 
+                                    class="bg-red-100 hover:bg-red-200 text-red-600 py-2 px-3 rounded text-sm transition">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!teamStore.loading && teamStore.teams.length === 0" class="col-span-full text-center py-12">
+                <p class="text-gray-500 text-lg">No teams found.</p>
+                <button @click="openCreateModal" class="text-blue-600 hover:underline mt-2 inline-block">
+                    Add your first team
+                </button>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div v-else>
+            <DataTable
+                title="Teams"
+                :columns="columns"
+                :data="teamStore.teams"
+                :loading="teamStore.loading"
+                :error="teamStore.error"
+                :pagination="teamStore.pagination"
+                item-key="team_id"
+                empty-message="No teams found"
+                @page-change="handlePageChange"
+            >
+                <template #header-actions>
+                    <button @click="openCreateModal" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Team
+                        </span>
+                    </button>
+                </template>
 
             <template #cell-country="{ item }">
                 <span class="text-gray-900">{{ item.country?.name }}</span>
@@ -50,6 +139,7 @@
                 </div>
             </template>
         </DataTable>
+        </div>
 
         <Modal v-model="showModal" :title="isEditing ? 'Edit Team' : 'Add Team'">
             <form @submit.prevent="handleSubmit" class="space-y-4">
@@ -100,6 +190,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useTeamStore } from '../stores/useTeamStore';
 import { useCountryStore } from '../stores/useCountryStore';
 import { useToast } from '../composables/useToast';
@@ -113,11 +204,13 @@ export default {
         Modal
     },
     setup() {
+        const router = useRouter();
         const teamStore = useTeamStore();
         const countryStore = useCountryStore();
         const { success, error } = useToast();
         const showModal = ref(false);
         const isEditing = ref(false);
+        const viewMode = ref('cards');
         const countries = ref([]);
         const formData = ref({
             team_name: '',
@@ -181,18 +274,25 @@ export default {
             teamStore.fetchTeams({ page });
         };
 
+        const viewPlayers = (teamId) => {
+            console.log('🔍 DEBUG: Navigating to players with team_id:', teamId);
+            router.push({ path: '/players', query: { team_id: teamId } });
+        };
+
         return {
             teamStore,
             columns,
             showModal,
             isEditing,
+            viewMode,
             formData,
             countries,
             openCreateModal,
             openEditModal,
             handleSubmit,
             confirmDelete,
-            handlePageChange
+            handlePageChange,
+            viewPlayers
         };
     }
 }

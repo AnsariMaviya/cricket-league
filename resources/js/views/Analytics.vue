@@ -369,15 +369,22 @@ export default {
 
         const loadChartData = async () => {
             try {
+                console.log('🔍 DEBUG: Starting loadChartData...');
+                
                 // Teams by country
                 const teamsResponse = await api.getTeams({ per_page: 100 });
+                console.log('🔍 DEBUG: Teams response:', teamsResponse.data);
+                
                 if (teamsResponse.data.success) {
                     const teams = teamsResponse.data.data;
+                    console.log('🔍 DEBUG: Teams data:', teams);
                     const countryCounts = {};
                     teams.forEach(team => {
                         const country = team.country?.name || 'Unknown';
                         countryCounts[country] = (countryCounts[country] || 0) + 1;
                     });
+                    
+                    console.log('🔍 DEBUG: Country counts:', countryCounts);
                     
                     teamsByCountryData.value = {
                         labels: Object.keys(countryCounts),
@@ -388,17 +395,23 @@ export default {
                             ]
                         }]
                     };
+                    console.log('🔍 DEBUG: Teams by country data set:', teamsByCountryData.value);
                 }
 
                 // Players by role
                 const playersResponse = await api.getPlayers({ per_page: 100 });
+                console.log('🔍 DEBUG: Players response:', playersResponse.data);
+                
                 if (playersResponse.data.success) {
-                    const players = playersResponse.data;
+                    const players = playersResponse.data.data; // FIXED: was playersResponse.data
+                    console.log('🔍 DEBUG: Players data:', players);
                     const roleCounts = {};
                     players.forEach(player => {
                         const role = player.role || 'Unknown';
                         roleCounts[role] = (roleCounts[role] || 0) + 1;
                     });
+                    
+                    console.log('🔍 DEBUG: Role counts:', roleCounts);
                     
                     playersByRoleData.value = {
                         labels: Object.keys(roleCounts),
@@ -408,17 +421,23 @@ export default {
                             backgroundColor: '#10B981'
                         }]
                     };
+                    console.log('🔍 DEBUG: Players by role data set:', playersByRoleData.value);
                 }
 
                 // Matches by status
                 const matchesResponse = await api.getMatches({ per_page: 100 });
+                console.log('🔍 DEBUG: Matches response:', matchesResponse.data);
+                
                 if (matchesResponse.data.success) {
-                    const matches = matchesResponse.data;
+                    const matches = matchesResponse.data.data; // FIXED: was matchesResponse.data
+                    console.log('🔍 DEBUG: Matches data:', matches);
                     const statusCounts = {};
                     matches.forEach(match => {
                         const status = match.status || 'Unknown';
                         statusCounts[status] = (statusCounts[status] || 0) + 1;
                     });
+                    
+                    console.log('🔍 DEBUG: Status counts:', statusCounts);
                     
                     matchesByStatusData.value = {
                         labels: Object.keys(statusCounts),
@@ -427,29 +446,39 @@ export default {
                             backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
                         }]
                     };
+                    console.log('🔍 DEBUG: Matches by status data set:', matchesByStatusData.value);
                 }
 
                 // Venue capacity
                 const venuesResponse = await api.getVenues({ per_page: 100 });
+                console.log('🔍 DEBUG: Venues response:', venuesResponse.data);
+                
                 if (venuesResponse.data.success) {
-                    const venues = venuesResponse.data;
-                    const topVenues = venues
-                        .filter(v => v.capacity)
+                    const venues = venuesResponse.data.data; // FIXED: was venuesResponse.data
+                    console.log('🔍 DEBUG: Venues data:', venues);
+                    const venueData = venues
                         .sort((a, b) => b.capacity - a.capacity)
-                        .slice(0, 5);
+                        .slice(0, 5)
+                        .map(venue => ({
+                            name: venue.name,
+                            capacity: venue.capacity
+                        }));
+                    
+                    console.log('🔍 DEBUG: Venue data sorted:', venueData);
                     
                     venueCapacityData.value = {
-                        labels: topVenues.map(v => v.name),
+                        labels: venueData.map(v => v.name),
                         datasets: [{
                             label: 'Capacity',
-                            data: topVenues.map(v => v.capacity),
+                            data: venueData.map(v => v.capacity),
                             backgroundColor: '#F59E0B'
                         }]
                     };
+                    console.log('🔍 DEBUG: Venue capacity data set:', venueCapacityData.value);
                 }
 
             } catch (err) {
-                console.error('Error loading chart data:', err);
+                console.error('🔍 DEBUG: Error loading chart data:', err);
             }
         };
 
