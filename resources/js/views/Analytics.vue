@@ -52,7 +52,9 @@
                 <div v-if="loading.charts" class="h-64 flex items-center justify-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-                <DoughnutChart v-else :data="teamsByCountryData" :options="chartOptions" />
+                <div v-else class="h-64">
+                    <DoughnutChart :key="teamsByCountryData.labels.length" :data="teamsByCountryData" :options="chartOptions" />
+                </div>
             </div>
 
             <!-- Players by Role Chart -->
@@ -61,7 +63,9 @@
                 <div v-if="loading.charts" class="h-64 flex items-center justify-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                 </div>
-                <BarChart v-else :key="playersByRoleData.datasets[0].data.length" :data="playersByRoleData" :options="chartOptions" />
+                <div v-else class="h-64">
+                    <BarChart :key="playersByRoleData.datasets[0].data.length" :data="playersByRoleData" :options="chartOptions" />
+                </div>
             </div>
 
             <!-- Matches by Status Chart -->
@@ -70,7 +74,9 @@
                 <div v-if="loading.charts" class="h-64 flex items-center justify-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                 </div>
-                <PieChart v-else :data="matchesByStatusData" :options="chartOptions" />
+                <div v-else class="h-64">
+                    <PieChart :key="matchesByStatusData.labels.length" :data="matchesByStatusData" :options="chartOptions" />
+                </div>
             </div>
 
             <!-- Venue Capacity Chart -->
@@ -79,7 +85,9 @@
                 <div v-if="loading.charts" class="h-64 flex items-center justify-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                 </div>
-                <BarChart v-else :data="venueCapacityData" :options="horizontalBarOptions" />
+                <div v-else class="h-64">
+                    <BarChart :key="venueCapacityData.labels.length" :data="venueCapacityData" :options="horizontalBarOptions" />
+                </div>
             </div>
         </div>
 
@@ -279,23 +287,46 @@ export default {
         const chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
-            aspectRatio: 2,
             plugins: {
                 legend: {
                     position: 'bottom'
                 }
             },
+            animation: {
+                duration: 0
+            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 10
+                    max: 10,
+                    ticks: {
+                        stepSize: 1
+                    }
                 }
             }
         };
 
         const horizontalBarOptions = {
-            ...chartOptions,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            animation: {
+                duration: 0
+            },
             indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100000,
+                    ticks: {
+                        stepSize: 10000
+                    }
+                }
+            }
         };
 
         const teamsByCountryData = ref({
