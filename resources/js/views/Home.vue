@@ -164,14 +164,14 @@ export default {
                 // Load recent matches
                 const recentResponse = await api.getMatches({ status: 'completed', per_page: 5 });
                 if (recentResponse.data.success) {
-                    this.recentMatches = recentResponse.data.data.data;
+                    this.recentMatches = recentResponse.data.data;
                 }
                 this.loading.recent = false;
 
                 // Load upcoming matches
                 const upcomingResponse = await api.getMatches({ status: 'scheduled', per_page: 5 });
                 if (upcomingResponse.data.success) {
-                    this.upcomingMatches = upcomingResponse.data.data.data;
+                    this.upcomingMatches = upcomingResponse.data.data;
                 }
                 this.loading.upcoming = false;
 

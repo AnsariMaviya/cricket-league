@@ -31,49 +31,49 @@ api.interceptors.response.use(
 export default {
     // Dashboard
     getStats() {
-        return api.get('/stats');
+        return api.get('/api/v1/stats');
     },
 
     // Countries
     getCountries(params = {}) {
-        return api.get('/countries', { params });
+        return api.get('/api/v1/countries', { params });
     },
 
     // Teams
     getTeams(params = {}) {
-        return api.get('/teams', { params });
+        return api.get('/api/v1/teams', { params });
     },
 
     getTeamDetails(id) {
-        return api.get(`/teams/${id}`);
+        return api.get(`/api/v1/teams/${id}`);
     },
 
     // Players
     getPlayers(params = {}) {
-        return api.get('/players', { params });
+        return api.get('/api/v1/players', { params });
     },
 
     getPlayerDetails(id) {
-        return api.get(`/players/${id}`);
+        return api.get(`/api/v1/players/${id}`);
     },
 
     // Venues
     getVenues(params = {}) {
-        return api.get('/venues', { params });
+        return api.get('/api/v1/venues', { params });
     },
 
     // Matches
     getMatches(params = {}) {
-        return api.get('/matches', { params });
+        return api.get('/api/v1/matches', { params });
     },
 
     getMatchDetails(id) {
-        return api.get(`/matches/${id}`);
+        return api.get(`/api/v1/matches/${id}`);
     },
 
     // Search
     search(query, type = 'all', perPage = 10) {
-        return api.get('/search', { 
+        return api.get('/api/v1/search', { 
             params: { q: query, type, per_page: perPage } 
         });
     }
