@@ -258,7 +258,7 @@ class ApiController extends Controller
                     ->orWhere('role', 'like', "%{$query}%")
                     ->orWhere('batting_style', 'like', "%{$query}%")
                     ->orWhere('bowling_style', 'like', "%{$query}%")
-                    ->with(['team', 'country'])
+                    ->with(['team'])
                     ->limit($type === 'players' ? $perPage : 10)
                     ->get();
                 $results = array_merge($results, $players->map(function ($player) {
@@ -279,7 +279,8 @@ class ApiController extends Controller
 
             if ($type === 'all' || $type === 'matches') {
                 $matches = CricketMatch::where('status', 'like', "%{$query}%")
-                    ->orWhere('description', 'like', "%{$query}%")
+                    ->orWhere('outcome', 'like', "%{$query}%")
+                    ->orWhere('match_type', 'like', "%{$query}%")
                     ->orWhereHas('firstTeam', function ($q) use ($query) {
                         $q->where('team_name', 'like', "%{$query}%");
                     })
