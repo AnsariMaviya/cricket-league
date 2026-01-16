@@ -1,17 +1,37 @@
 <template>
     <div class="matches">
-        <DataTable
-            title="Matches"
-            :columns="columns"
-            :data="matchStore.matches"
-            :loading="matchStore.loading"
-            :error="matchStore.error"
-            :pagination="matchStore.pagination"
-            item-key="match_id"
-            empty-message="No matches found"
-            @page-change="handlePageChange"
-        >
-            <template #header-actions>
+        <!-- Header with View Toggle -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Matches Management</h1>
+                    <p class="text-gray-600 mt-2">Manage cricket matches and schedules</p>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="viewMode = 'cards'" 
+                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
+                        </svg>
+                        Card View
+                    </button>
+                    <button @click="viewMode = 'table'" 
+                            :class="viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14" />
+                        </svg>
+                        Table View
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card View -->
+        <div v-if="viewMode === 'cards'">
+            <!-- Add Match Button -->
+            <div class="flex justify-end mb-6">
                 <button @click="openCreateModal" 
                         class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
                     <span class="flex items-center gap-2">
@@ -21,7 +41,95 @@
                         Add Match
                     </span>
                 </button>
-            </template>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="matchStore.loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mb-4"></div>
+                <p class="text-gray-600">Loading matches...</p>
+            </div>
+
+            <!-- Matches Grid -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="match in matchStore.matches" :key="match.match_id" 
+                     class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    <div class="bg-gradient-to-r from-red-600 to-red-700 text-white p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-lg font-semibold">{{ match.firstTeam?.team_name }}</h2>
+                            <span class="px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium">
+                                {{ match.first_team_score || 'Yet to bat' }}
+                            </span>
+                        </div>
+                        <div class="text-center text-2xl font-bold mb-2">VS</div>
+                        <div class="flex justify-between items-center">
+                            <span class="px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium">
+                                {{ match.second_team_score || 'Yet to bat' }}
+                            </span>
+                            <h2 class="text-lg font-semibold">{{ match.secondTeam?.team_name }}</h2>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="space-y-2 mb-4">
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Venue:</span> {{ match.venue?.name || 'TBA' }}
+                            </p>
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Date:</span> {{ formatDate(match.match_date) }}
+                            </p>
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Status:</span> 
+                                <span class="px-2 py-1 rounded-full text-xs font-medium ml-1" :class="getStatusClass(match.status)">
+                                    {{ match.status }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button @click="openEditModal(match)" 
+                                    class="flex-1 bg-red-600 hover:bg-red-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                Edit
+                            </button>
+                            <button @click="confirmDelete(match)" 
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm transition">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!matchStore.loading && matchStore.matches.length === 0" class="col-span-full text-center py-12">
+                <p class="text-gray-500 text-lg">No matches found.</p>
+                <button @click="openCreateModal" class="text-blue-600 hover:underline mt-2 inline-block">
+                    Add your first match
+                </button>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div v-else>
+            <DataTable
+                title="Matches"
+                :columns="columns"
+                :data="matchStore.matches"
+                :loading="matchStore.loading"
+                :error="matchStore.error"
+                :pagination="matchStore.pagination"
+                item-key="match_id"
+                empty-message="No matches found"
+                @page-change="handlePageChange"
+            >
+                <template #header-actions>
+                    <button @click="openCreateModal" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Match
+                        </span>
+                    </button>
+                </template>
 
             <template #cell-teams="{ item }">
                 <div class="text-sm">
@@ -82,6 +190,7 @@
                 </div>
             </template>
         </DataTable>
+        </div>
 
         <!-- Create/Edit Modal -->
         <Modal v-model="showModal" :title="isEditing ? 'Edit Match' : 'Add Match'" size="lg">
@@ -305,6 +414,7 @@ export default {
         const showModal = ref(false);
         const showShowModal = ref(false);
         const isEditing = ref(false);
+        const viewMode = ref('cards');
         const teams = ref([]);
         const venues = ref([]);
         const currentMatch = ref(null);
@@ -459,6 +569,7 @@ export default {
             showModal,
             showShowModal,
             isEditing,
+            viewMode,
             formData,
             teams,
             venues,
