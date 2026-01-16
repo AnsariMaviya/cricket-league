@@ -25,10 +25,11 @@ class AppServiceProvider extends ServiceProvider
     {
         CricketMatch::observe(MatchObserver::class);
         
-        // Query monitoring in development
-        if (config('app.debug')) {
-            $this->enableQueryLogging();
-        }
+        // Query monitoring in development - disabled for performance
+        // Enable only when debugging specific issues
+        // if (config('app.debug') && env('ENABLE_QUERY_LOGGING', false)) {
+        //     $this->enableQueryLogging();
+        // }
     }
     
     /**
