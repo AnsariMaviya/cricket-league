@@ -11,27 +11,24 @@ class TeamService
 {
     public function getAllTeams($filters = [])
     {
-        $cacheKey = 'teams_' . md5(json_encode($filters));
+        // Temporarily disable caching for debugging
+        $query = Team::with(['country', 'players'])
+                ->withCount('players');
         
-        return Cache::remember($cacheKey, 3600, function () use ($filters) {
-            $query = Team::with(['country', 'players'])
-                    ->withCount('players');
-            
-            if (isset($filters['search'])) {
-                $query->where(function ($q) use ($filters) {
-                    $q->where('team_name', 'LIKE', "%{$filters['search']}%")
-                      ->orWhere('in_match', 'LIKE', "%{$filters['search']}%");
-                });
-            }
-            
-            if (isset($filters['country_id'])) {
-                $query->where('country_id', $filters['country_id']);
-            }
-            
-            $teams = $query->paginate($filters['per_page'] ?? 15);
-            
-            return new TeamCollection($teams);
-        });
+        if (isset($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('team_name', 'LIKE', "%{$filters['search']}%")
+                  ->orWhere('in_match', 'LIKE', "%{$filters['search']}%");
+            });
+        }
+        
+        if (isset($filters['country_id'])) {
+            $query->where('country_id', $filters['country_id']);
+        }
+        
+        $teams = $query->paginate($filters['per_page'] ?? 15);
+        
+        return new TeamCollection($teams);
     }
     
     public function getTeamById($id)
