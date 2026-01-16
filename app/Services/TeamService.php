@@ -14,7 +14,8 @@ class TeamService
         $cacheKey = 'teams_' . md5(json_encode($filters));
         
         return Cache::remember($cacheKey, 3600, function () use ($filters) {
-            $query = Team::with(['country', 'players']);
+            $query = Team::with(['country', 'players'])
+                    ->withCount('players');
             
             if (isset($filters['search'])) {
                 $query->where(function ($q) use ($filters) {

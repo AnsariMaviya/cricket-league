@@ -313,7 +313,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { useTeamStore } from '../stores/useTeamStore';
 import { useToast } from '../composables/useToast';
@@ -328,6 +328,7 @@ export default {
     },
     setup() {
         const router = useRouter();
+        const route = useRoute();
         const playerStore = usePlayerStore();
         const teamStore = useTeamStore();
         const { success, error } = useToast();
@@ -359,7 +360,11 @@ export default {
         ];
 
         onMounted(async () => {
-            await playerStore.fetchPlayers();
+            // Check for team_id filter in query params
+            const teamId = route.query.team_id;
+            const params = teamId ? { team_id: teamId } : {};
+            
+            await playerStore.fetchPlayers(params);
             await teamStore.fetchTeams();
             teams.value = teamStore.teams;
         });

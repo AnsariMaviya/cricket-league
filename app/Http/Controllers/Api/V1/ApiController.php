@@ -233,53 +233,74 @@ class ApiController extends Controller
 
         try {
             if ($type === 'all' || $type === 'countries') {
-                $countries = $this->countryService->getAllCountries(['search' => $query, 'per_page' => $type === 'countries' ? $perPage : 10]);
-                if ($countries->data) {
-                    $results = array_merge($results, collect($countries->data)->map(function ($country) {
-                        return array_merge((array) $country, ['type' => 'country']);
-                    })->toArray());
-                }
+                $countries = Country::where('name', 'like', "%{$query}%")
+                    ->orWhere('short_name', 'like', "%{$query}%")
+                    ->limit($type === 'countries' ? $perPage : 10)
+                    ->get();
+                $results = array_merge($results, $countries->map(function ($country) {
+                    return array_merge($country->toArray(), ['type' => 'country']);
+                })->toArray());
             }
 
             if ($type === 'all' || $type === 'teams') {
-                $teams = $this->teamService->getAllTeams(['search' => $query, 'per_page' => $type === 'teams' ? $perPage : 10]);
-                if ($teams->data) {
-                    $results = array_merge($results, collect($teams->data)->map(function ($team) {
-                        return array_merge((array) $team, ['type' => 'team']);
-                    })->toArray());
-                }
+                $teams = Team::where('team_name', 'like', "%{$query}%")
+                    ->orWhere('in_match', 'like', "%{$query}%")
+                    ->with('country')
+                    ->limit($type === 'teams' ? $perPage : 10)
+                    ->get();
+                $results = array_merge($results, $teams->map(function ($team) {
+                    return array_merge($team->toArray(), ['type' => 'team']);
+                })->toArray());
             }
 
             if ($type === 'all' || $type === 'players') {
-                $players = $this->playerService->getAllPlayers(['search' => $query, 'per_page' => $type === 'players' ? $perPage : 10]);
-                if ($players->data) {
-                    $results = array_merge($results, collect($players->data)->map(function ($player) {
-                        return array_merge((array) $player, ['type' => 'player']);
-                    })->toArray());
-                }
+                $players = Player::where('first_name', 'like', "%{$query}%")
+                    ->orWhere('last_name', 'like', "%{$query}%")
+                    ->orWhere('role', 'like', "%{$query}%")
+                    ->orWhere('batting_style', 'like', "%{$query}%")
+                    ->orWhere('bowling_style', 'like', "%{$query}%")
+                    ->with(['team', 'country'])
+                    ->limit($type === 'players' ? $perPage : 10)
+                    ->get();
+                $results = array_merge($results, $players->map(function ($player) {
+                    return array_merge($player->toArray(), ['type' => 'player']);
+                })->toArray());
             }
 
             if ($type === 'all' || $type === 'venues') {
-                $venues = $this->venueService->getAllVenues(['search' => $query, 'per_page' => $type === 'venues' ? $perPage : 10]);
-                if ($venues->data) {
-                    $results = array_merge($results, collect($venues->data)->map(function ($venue) {
-                        return array_merge((array) $venue, ['type' => 'venue']);
-                    })->toArray());
-                }
+                $venues = Venue::where('name', 'like', "%{$query}%")
+                    ->orWhere('city', 'like', "%{$query}%")
+                    ->orWhere('address', 'like', "%{$query}%")
+                    ->limit($type === 'venues' ? $perPage : 10)
+                    ->get();
+                $results = array_merge($results, $venues->map(function ($venue) {
+                    return array_merge($venue->toArray(), ['type' => 'venue']);
+                })->toArray());
             }
 
             if ($type === 'all' || $type === 'matches') {
-                $matches = $this->matchService->getAllMatches(['search' => $query, 'per_page' => $type === 'matches' ? $perPage : 10]);
-                if ($matches->data) {
-                    $results = array_merge($results, collect($matches->data)->map(function ($match) {
-                        return array_merge((array) $match, ['type' => 'match']);
-                    })->toArray());
-                }
+                $matches = CricketMatch::where('status', 'like', "%{$query}%")
+                    ->orWhere('description', 'like', "%{$query}%")
+                    ->orWhereHas('firstTeam', function ($q) use ($query) {
+                        $q->where('team_name', 'like', "%{$query}%");
+                    })
+                    ->orWhereHas('secondTeam', function ($q) use ($query) {
+                        $q->where('team_name', 'like', "%{$query}%");
+                    })
+                    ->orWhereHas('venue', function ($q) use ($query) {
+                        $q->where('name', 'like', "%{$query}%");
+                    })
+                    ->with(['firstTeam', 'secondTeam', 'venue'])
+                    ->limit($type === 'matches' ? $perPage : 10)
+                    ->get();
+                $results = array_merge($results, $matches->map(function ($match) {
+                    return array_merge($match->toArray(), ['type' => 'match']);
+                })->toArray());
             }
 
             return $this->successResponse(array_slice($results, 0, $perPage), 'Search results retrieved successfully');
         } catch (\Exception $e) {
-            return $this->errorResponse('Search failed', 500);
+            return $this->errorResponse('Search failed: ' . $e->getMessage(), 500);
         }
     }
 }

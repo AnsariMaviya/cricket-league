@@ -393,6 +393,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { useMatchStore } from '../stores/useMatchStore';
 import { useTeamStore } from '../stores/useTeamStore';
 import { useVenueStore } from '../stores/useVenueStore';
@@ -407,6 +408,7 @@ export default {
         Modal
     },
     setup() {
+        const route = useRoute();
         const matchStore = useMatchStore();
         const teamStore = useTeamStore();
         const venueStore = useVenueStore();
@@ -444,7 +446,11 @@ export default {
         ];
 
         onMounted(async () => {
-            await matchStore.fetchMatches();
+            // Check for venue_id filter in query params
+            const venueId = route.query.venue_id;
+            const params = venueId ? { venue_id: venueId } : {};
+            
+            await matchStore.fetchMatches(params);
             await teamStore.fetchTeams({ per_page: 100 });
             await venueStore.fetchVenues({ per_page: 100 });
             teams.value = teamStore.teams;

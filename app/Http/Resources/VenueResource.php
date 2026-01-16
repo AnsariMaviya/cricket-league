@@ -23,7 +23,7 @@ class VenueResource extends JsonResource
             'capacity' => $this->capacity,
             'established_year' => $this->established_year,
             'description' => $this->description,
-            'matches_count' => $this->when(isset($this->matches_count), $this->matches_count),
+            'matches_count' => $this->matches_count ?? 0,
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
         ];

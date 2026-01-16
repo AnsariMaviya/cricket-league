@@ -26,7 +26,7 @@ class TeamResource extends JsonResource
             }),
             'country_id' => $this->country_id,
             'in_match' => $this->in_match,
-            'players_count' => $this->when(isset($this->players_count), $this->players_count),
+            'players_count' => $this->players_count ?? 0,
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
         ];
