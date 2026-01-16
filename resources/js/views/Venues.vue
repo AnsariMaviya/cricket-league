@@ -1,17 +1,37 @@
 <template>
     <div class="venues">
-        <DataTable
-            title="Venues"
-            :columns="columns"
-            :data="venueStore.venues"
-            :loading="venueStore.loading"
-            :error="venueStore.error"
-            :pagination="venueStore.pagination"
-            item-key="venue_id"
-            empty-message="No venues found"
-            @page-change="handlePageChange"
-        >
-            <template #header-actions>
+        <!-- Header with View Toggle -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Venues Management</h1>
+                    <p class="text-gray-600 mt-2">Manage cricket stadiums and venues</p>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="viewMode = 'cards'" 
+                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
+                        </svg>
+                        Card View
+                    </button>
+                    <button @click="viewMode = 'table'" 
+                            :class="viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14" />
+                        </svg>
+                        Table View
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card View -->
+        <div v-if="viewMode === 'cards'">
+            <!-- Add Venue Button -->
+            <div class="flex justify-end mb-6">
                 <button @click="openCreateModal" 
                         class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors">
                     <span class="flex items-center gap-2">
@@ -21,7 +41,91 @@
                         Add Venue
                     </span>
                 </button>
-            </template>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="venueStore.loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mb-4"></div>
+                <p class="text-gray-600">Loading venues...</p>
+            </div>
+
+            <!-- Venues Grid -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="venue in venueStore.venues" :key="venue.venue_id" 
+                     class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    <div class="bg-gradient-to-r from-orange-600 to-orange-700 text-white p-4">
+                        <h2 class="text-xl font-semibold">{{ venue.name }}</h2>
+                        <p class="text-orange-100 text-sm">{{ venue.city }}</p>
+                    </div>
+                    <div class="p-4">
+                        <div class="space-y-2 mb-4">
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Capacity:</span> 
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium ml-1">
+                                    {{ venue.capacity?.toLocaleString() || 0 }} seats
+                                </span>
+                            </p>
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Matches:</span> 
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium ml-1">
+                                    {{ venue.matches_count || 0 }} matches
+                                </span>
+                            </p>
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Address:</span> {{ venue.address || 'N/A' }}
+                            </p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button @click="viewMatches(venue.venue_id)" 
+                                    class="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                Matches
+                            </button>
+                            <button @click="openEditModal(venue)" 
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm transition">
+                                Edit
+                            </button>
+                            <button @click="confirmDelete(venue)" 
+                                    class="bg-red-100 hover:bg-red-200 text-red-600 py-2 px-3 rounded text-sm transition">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!venueStore.loading && venueStore.venues.length === 0" class="col-span-full text-center py-12">
+                <p class="text-gray-500 text-lg">No venues found.</p>
+                <button @click="openCreateModal" class="text-blue-600 hover:underline mt-2 inline-block">
+                    Add your first venue
+                </button>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div v-else>
+            <DataTable
+                title="Venues"
+                :columns="columns"
+                :data="venueStore.venues"
+                :loading="venueStore.loading"
+                :error="venueStore.error"
+                :pagination="venueStore.pagination"
+                item-key="venue_id"
+                empty-message="No venues found"
+                @page-change="handlePageChange"
+            >
+                <template #header-actions>
+                    <button @click="openCreateModal" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Venue
+                        </span>
+                    </button>
+                </template>
 
             <template #cell-capacity="{ value }">
                 <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
@@ -59,6 +163,7 @@
                 </div>
             </template>
         </DataTable>
+        </div>
 
         <!-- Create/Edit Modal -->
         <Modal v-model="showModal" :title="isEditing ? 'Edit Venue' : 'Add Venue'">
@@ -148,6 +253,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useVenueStore } from '../stores/useVenueStore';
 import { useToast } from '../composables/useToast';
 import DataTable from '../components/ui/DataTable.vue';
@@ -160,14 +266,15 @@ export default {
         Modal
     },
     setup() {
+        const router = useRouter();
         const venueStore = useVenueStore();
         const { success, error } = useToast();
         const showModal = ref(false);
         const isEditing = ref(false);
+        const viewMode = ref('cards');
         const formData = ref({
             name: '',
             city: '',
-            country: '',
             address: '',
             capacity: null,
             established_year: null,
@@ -232,17 +339,24 @@ export default {
             venueStore.fetchVenues({ page });
         };
 
+        const viewMatches = (venueId) => {
+            console.log('🔍 DEBUG: Navigating to matches with venue_id:', venueId);
+            router.push({ path: '/matches', query: { venue_id: venueId } });
+        };
+
         return {
             venueStore,
             columns,
             showModal,
             isEditing,
+            viewMode,
             formData,
             openCreateModal,
             openEditModal,
             handleSubmit,
             confirmDelete,
-            handlePageChange
+            handlePageChange,
+            viewMatches
         };
     }
 }
