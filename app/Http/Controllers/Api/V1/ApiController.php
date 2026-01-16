@@ -254,8 +254,7 @@ class ApiController extends Controller
             }
 
             if ($type === 'all' || $type === 'players') {
-                $players = Player::where('first_name', 'like', "%{$query}%")
-                    ->orWhere('last_name', 'like', "%{$query}%")
+                $players = Player::where('name', 'like', "%{$query}%")
                     ->orWhere('role', 'like', "%{$query}%")
                     ->orWhere('batting_style', 'like', "%{$query}%")
                     ->orWhere('bowling_style', 'like', "%{$query}%")
