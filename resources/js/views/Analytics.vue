@@ -279,9 +279,16 @@ export default {
         const chartOptions = {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
             plugins: {
                 legend: {
                     position: 'bottom'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 10
                 }
             }
         };

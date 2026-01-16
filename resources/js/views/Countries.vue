@@ -30,52 +30,62 @@
 
         <!-- Card View -->
         <div v-if="viewMode === 'cards'">
-            <DataTable
-                title="Countries"
-                :columns="columns"
-                :data="countryStore.countries"
-                :loading="countryStore.loading"
-                :error="countryStore.error"
-                :pagination="countryStore.pagination"
-                item-key="country_id"
-                empty-message="No countries found"
-                @page-change="handlePageChange"
-            >
-                <template #header-actions>
-                    <button @click="openCreateModal" 
-                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                        <span class="flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Country
-                        </span>
-                    </button>
-                </template>
-
-            <template #cell-teams_count="{ value }">
-                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                    {{ value }} teams
-                </span>
-            </template>
-
-            <template #actions="{ item }">
-                <div class="flex gap-2 justify-end">
-                    <button @click="openEditModal(item)" 
-                            class="text-blue-600 hover:text-blue-800">
+            <!-- Add Country Button -->
+            <div class="flex justify-end mb-6">
+                <button @click="openCreateModal" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    <span class="flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                    </button>
-                    <button @click="confirmDelete(item)" 
-                            class="text-red-600 hover:text-red-800">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
+                        Add Country
+                    </span>
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="countryStore.loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p class="text-gray-600">Loading countries...</p>
+            </div>
+
+            <!-- Countries Grid -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div v-for="country in countryStore.countries" :key="country.country_id" 
+                     class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-xl font-semibold text-gray-900">{{ country.name }}</h2>
+                            <span class="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                                {{ country.short_name }}
+                            </span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-4">{{ country.teams_count }} Teams</p>
+                        <div class="flex space-x-2">
+                            <button @click="viewTeams(country.country_id)" 
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                View Teams
+                            </button>
+                            <button @click="openEditModal(country)" 
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm transition">
+                                Edit
+                            </button>
+                            <button @click="confirmDelete(country)" 
+                                    class="bg-red-100 hover:bg-red-200 text-red-600 py-2 px-3 rounded text-sm transition">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </template>
-        </DataTable>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!countryStore.loading && countryStore.countries.length === 0" class="col-span-full text-center py-12">
+                <p class="text-gray-500 text-lg">No countries found.</p>
+                <button @click="openCreateModal" class="text-blue-600 hover:underline mt-2 inline-block">
+                    Add your first country
+                </button>
+            </div>
         </div>
 
         <!-- Table View -->
@@ -190,6 +200,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useCountryStore } from '../stores/useCountryStore';
 import { useToast } from '../composables/useToast';
 import DataTable from '../components/ui/DataTable.vue';
@@ -202,6 +213,7 @@ export default {
         Modal
     },
     setup() {
+        const router = useRouter();
         const countryStore = useCountryStore();
         const { success, error } = useToast();
         const showModal = ref(false);
@@ -262,6 +274,11 @@ export default {
             countryStore.fetchCountries({ page });
         };
 
+        const viewTeams = (countryId) => {
+            // Navigate to teams page with country filter
+            router.push({ name: 'teams', query: { country_id: countryId } });
+        };
+
         return {
             countryStore,
             columns,
@@ -273,7 +290,8 @@ export default {
             openEditModal,
             handleSubmit,
             confirmDelete,
-            handlePageChange
+            handlePageChange,
+            viewTeams
         };
     }
 }
