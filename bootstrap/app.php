@@ -11,10 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Add performance monitoring middleware in development
-        if (env('APP_DEBUG', false)) {
-            $middleware->append(\App\Http\Middleware\PerformanceMonitoring::class);
-        }
+        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
