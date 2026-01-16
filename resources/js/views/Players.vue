@@ -1,17 +1,37 @@
 <template>
     <div class="players">
-        <DataTable
-            title="Players"
-            :columns="columns"
-            :data="playerStore.players"
-            :loading="playerStore.loading"
-            :error="playerStore.error"
-            :pagination="playerStore.pagination"
-            item-key="player_id"
-            empty-message="No players found"
-            @page-change="handlePageChange"
-        >
-            <template #header-actions>
+        <!-- Header with View Toggle -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Players Management</h1>
+                    <p class="text-gray-600 mt-2">Manage cricket players and their profiles</p>
+                </div>
+                <div class="flex gap-2">
+                    <button @click="viewMode = 'cards'" 
+                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
+                        </svg>
+                        Card View
+                    </button>
+                    <button @click="viewMode = 'table'" 
+                            :class="viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                            class="px-4 py-2 rounded-md transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14" />
+                        </svg>
+                        Table View
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card View -->
+        <div v-if="viewMode === 'cards'">
+            <!-- Add Player Button -->
+            <div class="flex justify-end mb-6">
                 <button @click="openCreateModal" 
                         class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
                     <span class="flex items-center gap-2">
@@ -21,7 +41,88 @@
                         Add Player
                     </span>
                 </button>
-            </template>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="playerStore.loading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+                <p class="text-gray-600">Loading players...</p>
+            </div>
+
+            <!-- Players Grid -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div v-for="player in playerStore.players" :key="player.player_id" 
+                     class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    <div class="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4">
+                        <h2 class="text-xl font-semibold">{{ player.first_name }} {{ player.last_name }}</h2>
+                        <p class="text-purple-100 text-sm">{{ player.team?.team_name ?? 'No Team' }}</p>
+                    </div>
+                    <div class="p-4">
+                        <div class="space-y-2 mb-4">
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Role:</span> 
+                                <span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium ml-1">
+                                    {{ player.role }}
+                                </span>
+                            </p>
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Age:</span> {{ calculateAge(player.dob) }} years
+                            </p>
+                            <p class="text-gray-600 text-sm">
+                                <span class="font-medium">Country:</span> {{ player.country?.name ?? 'N/A' }}
+                            </p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button @click="openShowModal(player)" 
+                                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                View
+                            </button>
+                            <button @click="openEditModal(player)" 
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm transition">
+                                Edit
+                            </button>
+                            <button @click="confirmDelete(player)" 
+                                    class="bg-red-100 hover:bg-red-200 text-red-600 py-2 px-3 rounded text-sm transition">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!playerStore.loading && playerStore.players.length === 0" class="col-span-full text-center py-12">
+                <p class="text-gray-500 text-lg">No players found.</p>
+                <button @click="openCreateModal" class="text-blue-600 hover:underline mt-2 inline-block">
+                    Add your first player
+                </button>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div v-else>
+            <DataTable
+                title="Players"
+                :columns="columns"
+                :data="playerStore.players"
+                :loading="playerStore.loading"
+                :error="playerStore.error"
+                :pagination="playerStore.pagination"
+                item-key="player_id"
+                empty-message="No players found"
+                @page-change="handlePageChange"
+            >
+                <template #header-actions>
+                    <button @click="openCreateModal" 
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Player
+                        </span>
+                    </button>
+                </template>
 
             <template #cell-team="{ item }">
                 <span class="text-gray-900">{{ item.team?.team_name }}</span>
@@ -61,6 +162,7 @@
                 </div>
             </template>
         </DataTable>
+        </div>
 
         <!-- Create/Edit Modal -->
         <Modal v-model="showModal" :title="isEditing ? 'Edit Player' : 'Add Player'" size="lg">
@@ -211,6 +313,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { usePlayerStore } from '../stores/usePlayerStore';
 import { useTeamStore } from '../stores/useTeamStore';
 import { useToast } from '../composables/useToast';
@@ -224,12 +327,14 @@ export default {
         Modal
     },
     setup() {
+        const router = useRouter();
         const playerStore = usePlayerStore();
         const teamStore = useTeamStore();
         const { success, error } = useToast();
         const showModal = ref(false);
         const showShowModal = ref(false);
         const isEditing = ref(false);
+        const viewMode = ref('cards');
         const teams = ref([]);
         const currentPlayer = ref(null);
         const imagePreview = ref(null);
@@ -349,6 +454,7 @@ export default {
             showModal,
             showShowModal,
             isEditing,
+            viewMode,
             formData,
             teams,
             currentPlayer,
