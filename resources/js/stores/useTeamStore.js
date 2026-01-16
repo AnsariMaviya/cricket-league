@@ -42,7 +42,7 @@ export const useTeamStore = defineStore('team', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.post('/teams', data);
+                const response = await api.createTeam(data);
                 await this.fetchTeams();
                 return response.data;
             } catch (error) {
@@ -57,7 +57,7 @@ export const useTeamStore = defineStore('team', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.put(`/teams/${id}`, data);
+                const response = await api.updateTeam(id, data);
                 await this.fetchTeams();
                 return response.data;
             } catch (error) {
@@ -72,7 +72,7 @@ export const useTeamStore = defineStore('team', {
             this.loading = true;
             this.error = null;
             try {
-                await window.axios.delete(`/teams/${id}`);
+                await api.deleteTeam(id);
                 await this.fetchTeams();
             } catch (error) {
                 this.error = error.response?.data?.message || 'Failed to delete team';

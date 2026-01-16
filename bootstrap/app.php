@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Add performance monitoring middleware in development
-        if (config('app.debug')) {
+        if (env('APP_DEBUG', false)) {
             $middleware->append(\App\Http\Middleware\PerformanceMonitoring::class);
         }
     })

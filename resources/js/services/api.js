@@ -48,6 +48,18 @@ export default {
         return api.get(`/teams/${id}`);
     },
 
+    createTeam(data) {
+        return api.post('/teams', data);
+    },
+
+    updateTeam(id, data) {
+        return api.put(`/teams/${id}`, data);
+    },
+
+    deleteTeam(id) {
+        return api.delete(`/teams/${id}`);
+    },
+
     // Players
     getPlayers(params = {}) {
         return api.get('/players', { params });
@@ -57,9 +69,37 @@ export default {
         return api.get(`/players/${id}`);
     },
 
+    createPlayer(data) {
+        return api.post('/players', data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+
+    updatePlayer(id, data) {
+        return api.post(`/players/${id}`, data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+
+    deletePlayer(id) {
+        return api.delete(`/players/${id}`);
+    },
+
     // Venues
     getVenues(params = {}) {
         return api.get('/venues', { params });
+    },
+
+    createVenue(data) {
+        return api.post('/venues', data);
+    },
+
+    updateVenue(id, data) {
+        return api.put(`/venues/${id}`, data);
+    },
+
+    deleteVenue(id) {
+        return api.delete(`/venues/${id}`);
     },
 
     // Matches
@@ -69,6 +109,18 @@ export default {
 
     getMatchDetails(id) {
         return api.get(`/matches/${id}`);
+    },
+
+    createMatch(data) {
+        return api.post('/matches', data);
+    },
+
+    updateMatch(id, data) {
+        return api.put(`/matches/${id}`, data);
+    },
+
+    deleteMatch(id) {
+        return api.delete(`/matches/${id}`);
     },
 
     // Search
