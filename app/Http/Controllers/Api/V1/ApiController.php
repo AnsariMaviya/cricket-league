@@ -49,15 +49,23 @@ class ApiController extends Controller
     public function stats(): JsonResponse
     {
         $stats = Cache::remember('api_dashboard_stats', 3600, function () {
+            // Use single query with grouping for match counts
+            $matchCounts = CricketMatch::selectRaw('
+                COUNT(*) as total,
+                SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = "scheduled" THEN 1 ELSE 0 END) as scheduled,
+                SUM(CASE WHEN status = "live" THEN 1 ELSE 0 END) as live
+            ')->first();
+
             return [
                 'countries' => Country::count(),
                 'teams' => Team::count(),
                 'players' => Player::count(),
                 'venues' => Venue::count(),
-                'matches' => CricketMatch::count(),
-                'completed_matches' => CricketMatch::where('status', 'completed')->count(),
-                'upcoming_matches' => CricketMatch::where('status', 'scheduled')->count(),
-                'live_matches' => CricketMatch::where('status', 'live')->count(),
+                'matches' => $matchCounts->total,
+                'completed_matches' => $matchCounts->completed,
+                'upcoming_matches' => $matchCounts->scheduled,
+                'live_matches' => $matchCounts->live,
             ];
         });
 

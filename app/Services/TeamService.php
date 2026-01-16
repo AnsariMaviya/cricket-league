@@ -13,7 +13,7 @@ class TeamService
     {
         $cacheKey = 'teams_' . md5(json_encode($filters));
         
-        return Cache::tags(['teams'])->remember($cacheKey, 3600, function () use ($filters) {
+        return Cache::remember($cacheKey, 3600, function () use ($filters) {
             $query = Team::with(['country', 'players'])
                     ->withCount('players');
             
@@ -69,7 +69,9 @@ class TeamService
     
     private function clearCache()
     {
-        Cache::tags(['teams'])->flush();
-        Cache::tags(['dashboard'])->flush();
+        // Clear all team-related cache keys
+        Cache::forget('api_dashboard_stats');
+        // Note: Can't clear pattern-based keys with file driver
+        // Consider using Redis for production
     }
 }

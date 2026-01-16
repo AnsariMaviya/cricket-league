@@ -14,7 +14,24 @@ class MatchService
         $cacheKey = 'matches_' . md5(json_encode($filters));
         
         return Cache::remember($cacheKey, 1800, function () use ($filters) {
-            $query = CricketMatch::with(['firstTeam.country', 'secondTeam.country', 'venue']);
+            // Optimize: Only load country if needed, remove nested eager loading
+            $query = CricketMatch::with(['firstTeam', 'secondTeam', 'venue']);
+            
+            // Apply filters first to reduce dataset
+            if (isset($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+            
+            if (isset($filters['venue_id'])) {
+                $query->where('venue_id', $filters['venue_id']);
+            }
+            
+            if (isset($filters['team_id'])) {
+                $query->where(function ($q) use ($filters) {
+                    $q->where('first_team_id', $filters['team_id'])
+                      ->orWhere('second_team_id', $filters['team_id']);
+                });
+            }
             
             if (isset($filters['search'])) {
                 $query->where(function ($q) use ($filters) {
@@ -30,21 +47,6 @@ class MatchService
                           $subQ->where('name', 'LIKE', "%{$filters['search']}%");
                       });
                 });
-            }
-            
-            if (isset($filters['venue_id'])) {
-                $query->where('venue_id', $filters['venue_id']);
-            }
-            
-            if (isset($filters['team_id'])) {
-                $query->where(function ($q) use ($filters) {
-                    $q->where('first_team_id', $filters['team_id'])
-                      ->orWhere('second_team_id', $filters['team_id']);
-                });
-            }
-            
-            if (isset($filters['status'])) {
-                $query->where('status', $filters['status']);
             }
             
             if (isset($filters['match_type'])) {
