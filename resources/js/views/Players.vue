@@ -8,8 +8,8 @@
                     <p class="text-gray-600 mt-2">Manage cricket players and their profiles</p>
                 </div>
                 <div class="flex gap-2">
-                    <button @click="viewMode = 'cards'" 
-                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                    <button @click="viewMode = 'card'" 
+                            :class="viewMode === 'card' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
                             class="px-4 py-2 rounded-md transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
@@ -29,7 +29,7 @@
         </div>
 
         <!-- Card View -->
-        <div v-if="viewMode === 'cards'">
+        <div v-if="viewMode === 'card'">
             <!-- Add Player Button -->
             <div class="flex justify-end mb-6">
                 <button @click="openCreateModal" 
@@ -369,7 +369,7 @@ export default {
         const showModal = ref(false);
         const showShowModal = ref(false);
         const isEditing = ref(false);
-        const viewMode = ref('cards');
+        const viewMode = ref('card');
         const teams = ref([]);
         const currentPlayer = ref(null);
         const imagePreview = ref(null);
