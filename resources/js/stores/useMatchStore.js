@@ -42,7 +42,7 @@ export const useMatchStore = defineStore('match', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.post('/matches', data);
+                const response = await window.axios.post('/api/v1/matches', data);
                 await this.fetchMatches();
                 return response.data;
             } catch (error) {
@@ -57,7 +57,7 @@ export const useMatchStore = defineStore('match', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.put(`/matches/${id}`, data);
+                const response = await window.axios.put(`/api/v1/matches/${id}`, data);
                 await this.fetchMatches();
                 return response.data;
             } catch (error) {
@@ -72,7 +72,7 @@ export const useMatchStore = defineStore('match', {
             this.loading = true;
             this.error = null;
             try {
-                await window.axios.delete(`/matches/${id}`);
+                await window.axios.delete(`/api/v1/matches/${id}`);
                 await this.fetchMatches();
             } catch (error) {
                 this.error = error.response?.data?.message || 'Failed to delete match';

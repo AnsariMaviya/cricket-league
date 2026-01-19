@@ -8,8 +8,8 @@
                     <p class="text-gray-600 mt-2">Manage cricket matches and schedules</p>
                 </div>
                 <div class="flex gap-2">
-                    <button @click="viewMode = 'cards'" 
-                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                    <button @click="viewMode = 'card'" 
+                            :class="viewMode === 'card' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
                             class="px-4 py-2 rounded-md transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
@@ -29,7 +29,7 @@
         </div>
 
         <!-- Card View -->
-        <div v-if="viewMode === 'cards'">
+        <div v-if="viewMode === 'card'">
             <!-- Add Match Button -->
             <div class="flex justify-end mb-6">
                 <button @click="openCreateModal" 
@@ -84,6 +84,16 @@
                             </p>
                         </div>
                         <div class="flex space-x-2">
+                            <button v-if="match.status === 'completed'" 
+                                    @click="viewScorecard(match.match_id)" 
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                📊 Scorecard
+                            </button>
+                            <button v-if="match.status === 'scheduled' || match.status === 'live'" 
+                                    @click="goToLiveMatch(match.match_id)" 
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                {{ match.status === 'live' ? '🔴 Watch Live' : '▶️ Simulate' }}
+                            </button>
                             <button @click="openEditModal(match)" 
                                     class="flex-1 bg-red-600 hover:bg-red-700 text-white text-center py-2 px-3 rounded text-sm transition">
                                 Edit
@@ -104,6 +114,40 @@
                     Add your first match
                 </button>
             </div>
+        </div>
+
+        <!-- Pagination for Card View -->
+        <div v-if="viewMode === 'card' && matchStore.matches.length > 0" class="mt-6 flex justify-center">
+            <nav class="flex items-center gap-2">
+                <button 
+                    @click="handlePageChange(matchStore.pagination.current_page - 1)"
+                    :disabled="matchStore.pagination.current_page === 1"
+                    class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Previous
+                </button>
+                
+                <template v-for="page in getPageNumbers()" :key="page">
+                    <button 
+                        v-if="page !== '...'"
+                        @click="handlePageChange(page)"
+                        :class="[
+                            'px-3 py-2 border rounded-md',
+                            page === matchStore.pagination.current_page 
+                                ? 'bg-red-600 text-white border-red-600' 
+                                : 'border-gray-300 hover:bg-gray-50'
+                        ]">
+                        {{ page }}
+                    </button>
+                    <span v-else class="px-2">...</span>
+                </template>
+                
+                <button 
+                    @click="handlePageChange(matchStore.pagination.current_page + 1)"
+                    :disabled="matchStore.pagination.current_page === matchStore.pagination.last_page"
+                    class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Next
+                </button>
+            </nav>
         </div>
 
         <!-- Table View -->
@@ -416,7 +460,7 @@ export default {
         const showModal = ref(false);
         const showShowModal = ref(false);
         const isEditing = ref(false);
-        const viewMode = ref('cards');
+        const viewMode = ref('card');
         const teams = ref([]);
         const venues = ref([]);
         const currentMatch = ref(null);
@@ -485,8 +529,14 @@ export default {
 
         const startLiveMatch = async (match) => {
             try {
-                await matchStore.updateMatch(match.match_id, { status: 'live' });
-                success('Match started live!');
+                // Call the proper start endpoint to initialize the match
+                const response = await window.axios.post(`/api/v1/live-matches/${match.match_id}/start`);
+                if (response.data.success) {
+                    success('Match started successfully!');
+                    await matchStore.fetchMatches();
+                    // Redirect to live match page
+                    window.location.href = `/live-matches/${match.match_id}`;
+                }
             } catch (err) {
                 error(err.response?.data?.message || 'Failed to start match');
             }
@@ -547,6 +597,35 @@ export default {
             matchStore.fetchMatches({ page });
         };
 
+        const getPageNumbers = () => {
+            const pages = [];
+            const current = matchStore.pagination.current_page;
+            const last = matchStore.pagination.last_page;
+            
+            if (last <= 7) {
+                for (let i = 1; i <= last; i++) {
+                    pages.push(i);
+                }
+            } else {
+                if (current <= 3) {
+                    for (let i = 1; i <= 5; i++) pages.push(i);
+                    pages.push('...');
+                    pages.push(last);
+                } else if (current >= last - 2) {
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = last - 4; i <= last; i++) pages.push(i);
+                } else {
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                    pages.push('...');
+                    pages.push(last);
+                }
+            }
+            return pages;
+        };
+
         const getStatusClass = (status) => {
             const classes = {
                 'completed': 'bg-green-100 text-green-800',
@@ -555,6 +634,14 @@ export default {
                 'cancelled': 'bg-gray-100 text-gray-800'
             };
             return classes[status] || 'bg-gray-100 text-gray-800';
+        };
+
+        const goToLiveMatch = (matchId) => {
+            window.location.href = `/live-matches/${matchId}`;
+        };
+
+        const viewScorecard = (matchId) => {
+            window.location.href = `/live-matches/${matchId}`;
         };
 
         const formatDate = (dateString) => {
@@ -590,8 +677,11 @@ export default {
             handleSubmit,
             confirmDelete,
             handlePageChange,
+            goToLiveMatch,
+            viewScorecard,
+            formatDate,
             getStatusClass,
-            formatDate
+            getPageNumbers
         };
     }
 }

@@ -108,10 +108,7 @@ class MatchService
     
     private function clearCache()
     {
-        Cache::forget('matches_');
-        Cache::forget('recent_matches');
-        Cache::forget('upcoming_matches');
-        Cache::forget('dashboard_stats');
-        Cache::forget('analytics_dashboard');
+        // Clear all application cache since file/database drivers don't support selective clearing
+        Cache::flush();
     }
 }

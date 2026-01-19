@@ -70,6 +70,8 @@ export default {
                 { name: 'Players', path: '/players' },
                 { name: 'Venues', path: '/venues' },
                 { name: 'Matches', path: '/matches' },
+                { name: '🔴 Live', path: '/live-matches' },
+                { name: '🎯 Predictions', path: '/predictions' },
                 { name: 'Analytics', path: '/analytics' },
                 { name: 'Search', path: '/search' }
             ]

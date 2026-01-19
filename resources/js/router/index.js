@@ -7,6 +7,9 @@ import Venues from '../views/Venues.vue';
 import Matches from '../views/Matches.vue';
 import Analytics from '../views/Analytics.vue';
 import Search from '../views/Search.vue';
+import LiveMatches from '../views/LiveMatches.vue';
+import LiveMatchDetail from '../views/LiveMatchDetail.vue';
+import Predictions from '../views/Predictions.vue';
 
 const routes = [
     {
@@ -44,6 +47,24 @@ const routes = [
         name: 'Matches',
         component: Matches,
         meta: { title: 'Matches' }
+    },
+    {
+        path: '/live-matches',
+        name: 'LiveMatches',
+        component: LiveMatches,
+        meta: { title: 'Live Matches' }
+    },
+    {
+        path: '/live-matches/:id',
+        name: 'LiveMatchDetail',
+        component: LiveMatchDetail,
+        meta: { title: 'Live Match' }
+    },
+    {
+        path: '/predictions',
+        name: 'Predictions',
+        component: Predictions,
+        meta: { title: 'Predictions' }
     },
     {
         path: '/analytics',

@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY', 'AIzaSyCP6Fj7Df2KVE4WoGvZ_rvI3cN7HMV7NkY'),
+        'daily_limit' => env('GEMINI_DAILY_LIMIT', 1500),
+        'rpm_limit' => env('GEMINI_RPM_LIMIT', 15),
+    ],
+
 ];

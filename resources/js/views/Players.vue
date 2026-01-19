@@ -8,8 +8,8 @@
                     <p class="text-gray-600 mt-2">Manage cricket players and their profiles</p>
                 </div>
                 <div class="flex gap-2">
-                    <button @click="viewMode = 'cards'" 
-                            :class="viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
+                    <button @click="viewMode = 'card'" 
+                            :class="viewMode === 'card' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'"
                             class="px-4 py-2 rounded-md transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V6a2 2 0 012-2H4zM16 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4zM12 6a2 2 0 012-2h1a2 2 0 012 2v10a2 2 0 01-2 2h-1a2 2 0 01-2-2V6a2 2 0 012-2h4z" />
@@ -29,7 +29,7 @@
         </div>
 
         <!-- Card View -->
-        <div v-if="viewMode === 'cards'">
+        <div v-if="viewMode === 'card'">
             <!-- Add Player Button -->
             <div class="flex justify-end mb-6">
                 <button @click="openCreateModal" 
@@ -97,6 +97,40 @@
                     Add your first player
                 </button>
             </div>
+        </div>
+
+        <!-- Pagination for Card View -->
+        <div v-if="viewMode === 'card' && playerStore.players.length > 0" class="mt-6 flex justify-center">
+            <nav class="flex items-center gap-2">
+                <button 
+                    @click="handlePageChange(playerStore.pagination.current_page - 1)"
+                    :disabled="playerStore.pagination.current_page === 1"
+                    class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Previous
+                </button>
+                
+                <template v-for="page in getPageNumbers()" :key="page">
+                    <button 
+                        v-if="page !== '...'"
+                        @click="handlePageChange(page)"
+                        :class="[
+                            'px-3 py-2 border rounded-md',
+                            page === playerStore.pagination.current_page 
+                                ? 'bg-purple-600 text-white border-purple-600' 
+                                : 'border-gray-300 hover:bg-gray-50'
+                        ]">
+                        {{ page }}
+                    </button>
+                    <span v-else class="px-2">...</span>
+                </template>
+                
+                <button 
+                    @click="handlePageChange(playerStore.pagination.current_page + 1)"
+                    :disabled="playerStore.pagination.current_page === playerStore.pagination.last_page"
+                    class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Next
+                </button>
+            </nav>
         </div>
 
         <!-- Table View -->
@@ -335,7 +369,7 @@ export default {
         const showModal = ref(false);
         const showShowModal = ref(false);
         const isEditing = ref(false);
-        const viewMode = ref('cards');
+        const viewMode = ref('card');
         const teams = ref([]);
         const currentPlayer = ref(null);
         const imagePreview = ref(null);
@@ -453,6 +487,35 @@ export default {
             return path.startsWith('http') ? path : `/storage/${path}`;
         };
 
+        const getPageNumbers = () => {
+            const pages = [];
+            const current = playerStore.pagination.current_page;
+            const last = playerStore.pagination.last_page;
+            
+            if (last <= 7) {
+                for (let i = 1; i <= last; i++) {
+                    pages.push(i);
+                }
+            } else {
+                if (current <= 3) {
+                    for (let i = 1; i <= 5; i++) pages.push(i);
+                    pages.push('...');
+                    pages.push(last);
+                } else if (current >= last - 2) {
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = last - 4; i <= last; i++) pages.push(i);
+                } else {
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                    pages.push('...');
+                    pages.push(last);
+                }
+            }
+            return pages;
+        };
+
         return {
             playerStore,
             columns,
@@ -472,7 +535,8 @@ export default {
             confirmDelete,
             handlePageChange,
             calculateAge,
-            getImageUrl
+            getImageUrl,
+            getPageNumbers
         };
     }
 }
