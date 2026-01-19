@@ -45,4 +45,26 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function userPoints()
+    {
+        return $this->hasOne(UserPoints::class);
+    }
+
+    public function achievements()
+    {
+        return $this->belongsToMany(Achievement::class, 'user_achievements', 'user_id', 'achievement_id')
+            ->withPivot('unlocked_at')
+            ->withTimestamps();
+    }
+
+    public function predictions()
+    {
+        return $this->hasMany(UserPrediction::class);
+    }
+
+    public function pointTransactions()
+    {
+        return $this->hasMany(PointTransaction::class);
+    }
 }

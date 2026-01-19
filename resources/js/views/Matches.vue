@@ -84,6 +84,16 @@
                             </p>
                         </div>
                         <div class="flex space-x-2">
+                            <button v-if="match.status === 'completed'" 
+                                    @click="viewScorecard(match.match_id)" 
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                📊 Scorecard
+                            </button>
+                            <button v-if="match.status === 'scheduled' || match.status === 'live'" 
+                                    @click="goToLiveMatch(match.match_id)" 
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 px-3 rounded text-sm transition">
+                                {{ match.status === 'live' ? '🔴 Watch Live' : '▶️ Simulate' }}
+                            </button>
                             <button @click="openEditModal(match)" 
                                     class="flex-1 bg-red-600 hover:bg-red-700 text-white text-center py-2 px-3 rounded text-sm transition">
                                 Edit
@@ -519,8 +529,14 @@ export default {
 
         const startLiveMatch = async (match) => {
             try {
-                await matchStore.updateMatch(match.match_id, { status: 'live' });
-                success('Match started live!');
+                // Call the proper start endpoint to initialize the match
+                const response = await window.axios.post(`/api/v1/live-matches/${match.match_id}/start`);
+                if (response.data.success) {
+                    success('Match started successfully!');
+                    await matchStore.fetchMatches();
+                    // Redirect to live match page
+                    window.location.href = `/live-matches/${match.match_id}`;
+                }
             } catch (err) {
                 error(err.response?.data?.message || 'Failed to start match');
             }
@@ -620,6 +636,14 @@ export default {
             return classes[status] || 'bg-gray-100 text-gray-800';
         };
 
+        const goToLiveMatch = (matchId) => {
+            window.location.href = `/live-matches/${matchId}`;
+        };
+
+        const viewScorecard = (matchId) => {
+            window.location.href = `/live-matches/${matchId}`;
+        };
+
         const formatDate = (dateString) => {
             if (!dateString) return 'TBD';
             const date = new Date(dateString);
@@ -653,6 +677,8 @@ export default {
             handleSubmit,
             confirmDelete,
             handlePageChange,
+            goToLiveMatch,
+            viewScorecard,
             formatDate,
             getStatusClass,
             getPageNumbers

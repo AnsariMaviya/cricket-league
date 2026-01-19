@@ -42,7 +42,7 @@ export const useVenueStore = defineStore('venue', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.post('/venues', data);
+                const response = await window.axios.post('/api/v1/venues', data);
                 await this.fetchVenues();
                 return response.data;
             } catch (error) {
@@ -57,7 +57,7 @@ export const useVenueStore = defineStore('venue', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.put(`/venues/${id}`, data);
+                const response = await window.axios.put(`/api/v1/venues/${id}`, data);
                 await this.fetchVenues();
                 return response.data;
             } catch (error) {
@@ -72,7 +72,7 @@ export const useVenueStore = defineStore('venue', {
             this.loading = true;
             this.error = null;
             try {
-                await window.axios.delete(`/venues/${id}`);
+                await window.axios.delete(`/api/v1/venues/${id}`);
                 await this.fetchVenues();
             } catch (error) {
                 this.error = error.response?.data?.message || 'Failed to delete venue';

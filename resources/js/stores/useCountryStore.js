@@ -42,7 +42,7 @@ export const useCountryStore = defineStore('country', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.post('/countries', data);
+                const response = await window.axios.post('/api/v1/countries', data);
                 await this.fetchCountries();
                 return response.data;
             } catch (error) {
@@ -57,7 +57,7 @@ export const useCountryStore = defineStore('country', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.put(`/countries/${id}`, data);
+                const response = await window.axios.put(`/api/v1/countries/${id}`, data);
                 await this.fetchCountries();
                 return response.data;
             } catch (error) {
@@ -72,7 +72,7 @@ export const useCountryStore = defineStore('country', {
             this.loading = true;
             this.error = null;
             try {
-                await window.axios.delete(`/countries/${id}`);
+                await window.axios.delete(`/api/v1/countries/${id}`);
                 await this.fetchCountries();
             } catch (error) {
                 this.error = error.response?.data?.message || 'Failed to delete country';

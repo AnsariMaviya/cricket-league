@@ -42,7 +42,7 @@ export const usePlayerStore = defineStore('player', {
             this.loading = true;
             this.error = null;
             try {
-                const response = await window.axios.post('/players', formData, {
+                const response = await window.axios.post('/api/v1/players', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 await this.fetchPlayers();
@@ -60,7 +60,7 @@ export const usePlayerStore = defineStore('player', {
             this.error = null;
             try {
                 formData.append('_method', 'PUT');
-                const response = await window.axios.post(`/players/${id}`, formData, {
+                const response = await window.axios.post(`/api/v1/players/${id}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 await this.fetchPlayers();
@@ -77,7 +77,7 @@ export const usePlayerStore = defineStore('player', {
             this.loading = true;
             this.error = null;
             try {
-                await window.axios.delete(`/players/${id}`);
+                await window.axios.delete(`/api/v1/players/${id}`);
                 await this.fetchPlayers();
             } catch (error) {
                 this.error = error.response?.data?.message || 'Failed to delete player';

@@ -220,6 +220,243 @@ class ApiController extends Controller
     }
 
     /**
+     * Create a new country
+     */
+    public function createCountry(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|unique:countries',
+            'short_name' => 'required|string|max:10|unique:countries',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        $country = Country::create($request->all());
+        return $this->successResponse($country, 'Country created successfully', 201);
+    }
+
+    /**
+     * Update country
+     */
+    public function updateCountry(Request $request, $id): JsonResponse
+    {
+        $country = Country::find($id);
+        if (!$country) {
+            return $this->notFoundResponse('Country');
+        }
+
+        $country->update($request->all());
+        return $this->successResponse($country, 'Country updated successfully');
+    }
+
+    /**
+     * Delete country
+     */
+    public function deleteCountry($id): JsonResponse
+    {
+        $country = Country::find($id);
+        if (!$country) {
+            return $this->notFoundResponse('Country');
+        }
+
+        $country->delete();
+        return $this->successResponse(null, 'Country deleted successfully');
+    }
+
+    /**
+     * Create a new team
+     */
+    public function createTeam(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'team_name' => 'required|string|max:255',
+            'country_id' => 'required|exists:countries,country_id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        $team = Team::create($request->all());
+        return $this->successResponse($team, 'Team created successfully', 201);
+    }
+
+    /**
+     * Update team
+     */
+    public function updateTeam(Request $request, $id): JsonResponse
+    {
+        $team = Team::find($id);
+        if (!$team) {
+            return $this->notFoundResponse('Team');
+        }
+
+        $team->update($request->all());
+        return $this->successResponse($team, 'Team updated successfully');
+    }
+
+    /**
+     * Delete team
+     */
+    public function deleteTeam($id): JsonResponse
+    {
+        $team = Team::find($id);
+        if (!$team) {
+            return $this->notFoundResponse('Team');
+        }
+
+        $team->delete();
+        return $this->successResponse(null, 'Team deleted successfully');
+    }
+
+    /**
+     * Create a new player
+     */
+    public function createPlayer(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'team_id' => 'required|exists:teams,team_id',
+            'role' => 'required|in:Batsman,Bowler,All-rounder,Wicket-keeper',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        $player = Player::create($request->all());
+        return $this->successResponse($player, 'Player created successfully', 201);
+    }
+
+    /**
+     * Update player
+     */
+    public function updatePlayer(Request $request, $id): JsonResponse
+    {
+        $player = Player::find($id);
+        if (!$player) {
+            return $this->notFoundResponse('Player');
+        }
+
+        $player->update($request->all());
+        return $this->successResponse($player, 'Player updated successfully');
+    }
+
+    /**
+     * Delete player
+     */
+    public function deletePlayer($id): JsonResponse
+    {
+        $player = Player::find($id);
+        if (!$player) {
+            return $this->notFoundResponse('Player');
+        }
+
+        $player->delete();
+        return $this->successResponse(null, 'Player deleted successfully');
+    }
+
+    /**
+     * Create a new venue
+     */
+    public function createVenue(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        $venue = Venue::create($request->all());
+        return $this->successResponse($venue, 'Venue created successfully', 201);
+    }
+
+    /**
+     * Update venue
+     */
+    public function updateVenue(Request $request, $id): JsonResponse
+    {
+        $venue = Venue::find($id);
+        if (!$venue) {
+            return $this->notFoundResponse('Venue');
+        }
+
+        $venue->update($request->all());
+        return $this->successResponse($venue, 'Venue updated successfully');
+    }
+
+    /**
+     * Delete venue
+     */
+    public function deleteVenue($id): JsonResponse
+    {
+        $venue = Venue::find($id);
+        if (!$venue) {
+            return $this->notFoundResponse('Venue');
+        }
+
+        $venue->delete();
+        return $this->successResponse(null, 'Venue deleted successfully');
+    }
+
+    /**
+     * Create a new match
+     */
+    public function createMatch(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'venue_id' => 'required|exists:venues,venue_id',
+            'first_team_id' => 'required|exists:teams,team_id',
+            'second_team_id' => 'required|exists:teams,team_id|different:first_team_id',
+            'match_type' => 'required|in:T20,ODI,Test',
+            'overs' => 'required|integer|min:1',
+            'match_date' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationErrorResponse($validator->errors());
+        }
+
+        $match = $this->matchService->createMatch($request->all());
+        return $this->successResponse($match, 'Match created successfully', 201);
+    }
+
+    /**
+     * Update match
+     */
+    public function updateMatch(Request $request, $id): JsonResponse
+    {
+        $match = CricketMatch::find($id);
+        if (!$match) {
+            return $this->notFoundResponse('Match');
+        }
+
+        $match->update($request->all());
+        $match->load(['firstTeam', 'secondTeam', 'venue']);
+        
+        return $this->successResponse($match, 'Match updated successfully');
+    }
+
+    /**
+     * Delete match
+     */
+    public function deleteMatch($id): JsonResponse
+    {
+        $match = CricketMatch::find($id);
+        if (!$match) {
+            return $this->notFoundResponse('Match');
+        }
+
+        $match->delete();
+        return $this->successResponse(null, 'Match deleted successfully');
+    }
+
+    /**
      * Global search across all entities
      */
     public function search(Request $request): JsonResponse
