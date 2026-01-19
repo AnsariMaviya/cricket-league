@@ -679,6 +679,14 @@ export default {
         dismissal += ` b ${player.bowler_name}`;
       }
       return dismissal;
+    },
+
+    formatOverNumber(overNumber) {
+      if (!overNumber && overNumber !== 0) return '';
+      // Convert over number to "over.ball" format
+      const over = Math.floor(overNumber);
+      const ball = Math.round((overNumber - over) * 10);
+      return `${over}.${ball}`;
     }
   },
   watch: {
