@@ -1,10 +1,11 @@
 # 🏏 Cricket League Management System
 
-A comprehensive cricket league management platform built with **Laravel 12** and **Vue.js 3**, featuring live match simulation, AI-powered predictions, and gamification.
+A comprehensive cricket league management platform built with **Laravel 12** and **Vue.js 3**, featuring real-time live match simulation, AI-powered predictions, WebSocket broadcasting, and gamification.
 
 ![Laravel](https://img.shields.io/badge/Laravel-12.0-red?style=flat-square&logo=laravel)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.0-green?style=flat-square&logo=vue.js)
 ![PHP](https://img.shields.io/badge/PHP-8.2-blue?style=flat-square&logo=php)
+![WebSocket](https://img.shields.io/badge/WebSocket-Real_Time-orange?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
 ---
@@ -18,6 +19,7 @@ A comprehensive cricket league management platform built with **Laravel 12** and
 - [Documentation](#-documentation)
 - [Project Structure](#-project-structure)
 - [API Endpoints](#-api-endpoints)
+- [Real-Time Features](#-real-time-features)
 - [Screenshots](#-screenshots)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -64,11 +66,12 @@ A comprehensive cricket league management platform built with **Laravel 12** and
 - **Badges & Rewards** - Visual achievement system
 
 ### 📡 Real-Time Features
-- **WebSocket Broadcasting** - Live updates via Pusher
+- **WebSocket Broadcasting** - Live updates via Laravel Reverb
 - **Match Events** - Real-time ball and match updates
-- **Live Commentary Feed** - Streaming commentary
-- **Score Updates** - Instant score changes
+- **Live Commentary Feed** - Streaming commentary with WebSocket
+- **Score Updates** - Instant score changes without polling
 - **Multiple Viewers** - Track concurrent viewers
+- **Zero-Polling Architecture** - Efficient real-time updates
 
 ### 🔌 API Features
 - **RESTful API** - 40+ API endpoints
@@ -87,14 +90,15 @@ A comprehensive cricket league management platform built with **Laravel 12** and
 - **PHP 8.2** - Programming Language
 - **MySQL** - Primary Database
 - **Redis** - Caching & Queue Management
-- **Pusher** - WebSocket Broadcasting
+- **Laravel Reverb** - WebSocket Broadcasting
 
 ### Frontend
-- **Vue.js 3** - JavaScript Framework
+- **Vue.js 3** - JavaScript Framework with Composition API
 - **Vue Router** - SPA Routing
-- **Vite** - Build Tool
+- **Vite** - Build Tool with HMR
 - **TailwindCSS** - Utility-First CSS
 - **Axios** - HTTP Client
+- **Laravel Echo** - WebSocket Client
 
 ### Additional Tools
 - **Composer** - PHP Dependency Manager
@@ -102,6 +106,7 @@ A comprehensive cricket league management platform built with **Laravel 12** and
 - **Laravel Tinker** - REPL for Laravel
 - **Intervention Image** - Image Processing
 - **League Fractal** - API Transformer
+- **Laravel Horizon** - Queue Dashboard
 
 ---
 
@@ -149,12 +154,22 @@ DB_USERNAME=your_username
 DB_PASSWORD=your_password
 ```
 
-### Step 5: Run Migrations
+### Step 5: Configure WebSocket (Reverb)
+```env
+BROADCAST_DRIVER=reverb
+REVERB_APP_ID=your_app_id
+REVERB_APP_KEY=your_key
+REVERB_APP_SECRET=your_secret
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
+```
+
+### Step 6: Run Migrations
 ```bash
 php artisan migrate
 ```
 
-### Step 6: Build Frontend Assets
+### Step 7: Build Frontend Assets
 ```bash
 # Development
 npm run dev
@@ -163,9 +178,16 @@ npm run dev
 npm run build
 ```
 
-### Step 7: Start Development Server
+### Step 8: Start Services
 ```bash
+# Start Laravel development server
 php artisan serve
+
+# Start Reverb WebSocket server (in separate terminal)
+php artisan reverb:start
+
+# Start queue worker (for background jobs)
+php artisan queue:work
 ```
 
 Visit: `http://localhost:8000`
@@ -213,6 +235,7 @@ Comprehensive documentation is available in the following files:
 - **[EXTERNAL_API_INTEGRATION.md](EXTERNAL_API_INTEGRATION.md)** - Integrate real cricket APIs
 - **[PERFORMANCE_GUIDE.md](PERFORMANCE_GUIDE.md)** - Performance optimization guide
 - **[PAGINATION_ADDED.md](PAGINATION_ADDED.md)** - Pagination implementation details
+- **[AI_COMMENTARY_GUIDE.md](AI_COMMENTARY_GUIDE.md)** - AI commentary system guide
 
 ---
 
@@ -225,7 +248,8 @@ cricket-league-laravel/
 │   │   └── SimulateMatch.php          # CLI match simulation
 │   ├── Events/
 │   │   ├── MatchUpdated.php           # Match update events
-│   │   └── BallSimulated.php          # Ball simulation events
+│   │   ├── BallSimulated.php          # Ball simulation events
+│   │   └── ScoreboardUpdated.php      # Real-time scoreboard updates
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── LiveMatchController.php
@@ -236,6 +260,10 @@ cricket-league-laravel/
 │   │   │   ├── PlayerController.php
 │   │   │   └── ...
 │   │   └── Resources/                 # API Resources
+│   ├── Jobs/
+│   │   ├── SimulateMatchJob.php       # Background match simulation
+│   │   ├── ProcessMatchData.php       # Match data processing
+│   │   └── CacheMatchStatistics.php   # Statistics caching
 │   ├── Models/
 │   │   ├── CricketMatch.php
 │   │   ├── MatchInnings.php
@@ -252,7 +280,7 @@ cricket-league-laravel/
 │       ├── AIMatchPredictionService.php
 │       └── GamificationService.php
 ├── database/
-│   ├── migrations/                    # 16+ database migrations
+│   ├── migrations/                    # 25+ database migrations
 │   └── seeders/
 ├── resources/
 │   ├── js/
@@ -264,7 +292,7 @@ cricket-league-laravel/
 │   │   │   ├── Gamification.vue
 │   │   │   └── ...
 │   │   ├── components/
-│   │   │   ├── LiveScoreboard.vue
+│   │   │   ├── LiveScoreboard.vue     # Real-time scoreboard component
 │   │   │   └── Navigation.vue
 │   │   └── router/
 │   │       └── index.js
@@ -291,8 +319,8 @@ GET    /api/v1/live-matches/{id}/summary         # Match summary
 GET    /api/v1/live-matches/{id}/over/{num}      # Over details
 POST   /api/v1/live-matches/{id}/start           # Start match
 POST   /api/v1/live-matches/{id}/simulate-ball   # Simulate next ball
-POST   /api/v1/live-matches/{id}/auto-simulate   # Auto-simulate match
-POST   /api/v1/live-matches/{id}/stop            # Stop match
+POST   /api/v1/live-matches/{id}/start-auto-simulation   # Auto-simulate match
+POST   /api/v1/live-matches/{id}/stop-auto-simulation    # Stop simulation
 ```
 
 ### Predictions
@@ -349,6 +377,41 @@ DELETE /api/v1/countries/{id}                    # Delete country
 ### Prediction Tables
 - `match_predictions` - AI predictions
 - `user_predictions` - User predictions
+
+---
+
+## 📡 Real-Time Features
+
+### WebSocket Architecture
+The system uses a **zero-polling architecture** for real-time updates:
+
+- **Laravel Reverb**: Native WebSocket server for broadcasting
+- **Laravel Echo**: Frontend WebSocket client for listening
+- **Event Broadcasting**: Real-time score and commentary updates
+- **Channel-Based**: Private channels per match (`match.{id}`)
+- **Efficient**: Only sends delta updates, not full data refreshes
+
+### Real-Time Components
+- **LiveScoreboard.vue**: Real-time scoreboard component
+- **ScoreboardUpdated Event**: Broadcasts score changes
+- **Commentary Updates**: Live ball-by-ball commentary
+- **Match Status**: Real-time match state changes
+
+### WebSocket Events
+```javascript
+// Listen for scoreboard updates
+Echo.channel(`match.${matchId}`)
+    .listen('.scoreboard.updated', (data) => {
+        // Update scores, commentary, ball-by-ball data
+        this.updateScoreboard(data);
+    });
+```
+
+### Performance Benefits
+- **No Polling**: Eliminates repeated API calls
+- **Instant Updates**: Real-time response to match events
+- **Scalable**: Efficient for multiple concurrent viewers
+- **Bandwidth**: Only sends changed data, not full refreshes
 
 ---
 
@@ -428,14 +491,15 @@ Contextual commentary generated for:
 
 ## 🔧 Configuration
 
-### Broadcasting (Optional)
-For real-time features, configure Pusher in `.env`:
+### Broadcasting (Required for Real-Time)
+For real-time features, configure Reverb in `.env`:
 ```env
-BROADCAST_DRIVER=pusher
-PUSHER_APP_ID=your_app_id
-PUSHER_APP_KEY=your_key
-PUSHER_APP_SECRET=your_secret
-PUSHER_APP_CLUSTER=your_cluster
+BROADCAST_DRIVER=reverb
+REVERB_APP_ID=your_app_id
+REVERB_APP_KEY=your_key
+REVERB_APP_SECRET=your_secret
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
 ```
 
 ### Caching
@@ -510,7 +574,7 @@ This project is open-sourced software licensed under the [MIT license](https://o
 - Built with [Laravel](https://laravel.com) - The PHP Framework for Web Artisans
 - Frontend powered by [Vue.js](https://vuejs.org)
 - Styled with [TailwindCSS](https://tailwindcss.com)
-- Real-time features by [Pusher](https://pusher.com)
+- Real-time features by [Laravel Reverb](https://reverb.laravel.com)
 
 ---
 
@@ -533,6 +597,24 @@ For issues, questions, or suggestions:
 - [ ] Social features (comments, sharing)
 - [ ] Multi-language support
 - [ ] Dark mode
+
+---
+
+## 📈 Recent Updates
+
+### Version 3.0 - Real-Time Architecture
+- ✅ Implemented WebSocket broadcasting with Laravel Reverb
+- ✅ Eliminated polling for real-time updates
+- ✅ Added zero-polling scoreboard updates
+- ✅ Enhanced live match commentary system
+- ✅ Improved performance with delta updates
+
+### Version 2.5 - Enhanced Features
+- ✅ Added AI-powered match predictions
+- ✅ Implemented comprehensive gamification system
+- ✅ Enhanced search functionality
+- ✅ Added pagination for large datasets
+- ✅ Improved API responses with proper resources
 
 ---
 
