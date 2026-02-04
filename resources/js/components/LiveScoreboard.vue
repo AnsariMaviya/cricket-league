@@ -9,19 +9,19 @@
       <!-- Match Header -->
       <div class="match-header">
         <div class="team-score">
-          <h3>{{ scoreboard.match.first_team.team_name }}</h3>
+          <h3>{{ scoreboard.match.first_team?.team_name || 'Team 1' }}</h3>
           <div class="score">{{ scoreboard.match.first_team_score || '0/0' }}</div>
         </div>
         <div class="vs">VS</div>
         <div class="team-score">
-          <h3>{{ scoreboard.match.second_team.team_name }}</h3>
+          <h3>{{ scoreboard.match.second_team?.team_name || 'Team 2' }}</h3>
           <div class="score">{{ scoreboard.match.second_team_score || '0/0' }}</div>
         </div>
       </div>
 
       <!-- Match Info -->
       <div class="match-info">
-        <span class="venue">{{ scoreboard.match.venue.name }}</span>
+        <span class="venue">{{ scoreboard.match.venue?.name || 'Unknown Venue' }}</span>
         <span class="status" :class="statusClass">{{ scoreboard.match.status }}</span>
         <span class="over">Over: {{ scoreboard.match.current_over }}</span>
       </div>
@@ -57,7 +57,7 @@
           </div>
 
           <!-- Current Batsmen -->
-          <div v-if="scoreboard.current_batsmen.length" class="current-batsmen">
+          <div v-if="scoreboard.current_batsmen && scoreboard.current_batsmen.length" class="current-batsmen">
             <h4>Current Batsmen</h4>
             <table class="batsmen-table">
               <thead>
@@ -100,7 +100,7 @@
               <tbody>
                 <tr>
                   <td class="text-left">{{ scoreboard.current_bowler.player.name }}</td>
-                  <td>{{ (scoreboard.current_bowler.balls_bowled / 6).toFixed(1) }}</td>
+                  <td>{{ scoreboard.current_bowler.overs_bowled || '0.0' }}</td>
                   <td>{{ scoreboard.current_bowler.maidens || 0 }}</td>
                   <td>{{ scoreboard.current_bowler.runs_conceded }}</td>
                   <td><strong>{{ scoreboard.current_bowler.wickets_taken }}</strong></td>
@@ -111,7 +111,7 @@
           </div>
 
           <!-- Recent Balls -->
-          <div v-if="scoreboard.recent_balls.length" class="recent-balls">
+          <div v-if="scoreboard.recent_balls && scoreboard.recent_balls.length" class="recent-balls">
             <h4>Recent Balls</h4>
             <div class="balls-grid">
               <div v-for="ball in scoreboard.recent_balls.slice().reverse()" 
@@ -124,7 +124,7 @@
           </div>
 
           <!-- Recent Commentary (last 5) -->
-          <div v-if="scoreboard.commentary.length" class="commentary">
+          <div v-if="scoreboard.commentary && scoreboard.commentary.length" class="commentary">
             <h4>Live Commentary</h4>
             <div class="commentary-feed">
               <div v-for="comment in scoreboard.commentary.slice(0, 5)" 
@@ -143,7 +143,7 @@
           <div v-if="fullScorecard">
             <!-- First Innings -->
             <div class="innings-scorecard">
-              <h3>{{ scoreboard.match.first_team.team_name }} Innings</h3>
+              <h3>{{ scoreboard.match.first_team?.team_name }} Innings</h3>
               <div class="score-summary">{{ scoreboard.match.first_team_score || 'Yet to bat' }}</div>
               
               <table class="full-scorecard-table">
@@ -193,7 +193,7 @@
                 <tbody>
                   <tr v-for="bowler in fullScorecard.innings1_bowling" :key="bowler.player_id">
                     <td class="text-left">{{ bowler.player.name }}</td>
-                    <td>{{ (bowler.balls_bowled / 6).toFixed(1) }}</td>
+                    <td>{{ bowler.overs_bowled || '0.0' }}</td>
                     <td>{{ bowler.maidens || 0 }}</td>
                     <td>{{ bowler.runs_conceded }}</td>
                     <td><strong>{{ bowler.wickets_taken }}</strong></td>
@@ -205,7 +205,7 @@
 
             <!-- Second Innings -->
             <div v-if="scoreboard.match.current_innings >= 2" class="innings-scorecard mt-4">
-              <h3>{{ scoreboard.match.second_team.team_name }} Innings</h3>
+              <h3>{{ scoreboard.match.second_team?.team_name }} Innings</h3>
               <div class="score-summary">{{ scoreboard.match.second_team_score || 'Yet to bat' }}</div>
               
               <table class="full-scorecard-table">
@@ -255,7 +255,7 @@
                 <tbody>
                   <tr v-for="bowler in fullScorecard.innings2_bowling" :key="bowler.player_id">
                     <td class="text-left">{{ bowler.player.name }}</td>
-                    <td>{{ (bowler.balls_bowled / 6).toFixed(1) }}</td>
+                    <td>{{ bowler.overs_bowled || '0.0' }}</td>
                     <td>{{ bowler.maidens || 0 }}</td>
                     <td>{{ bowler.runs_conceded }}</td>
                     <td><strong>{{ bowler.wickets_taken }}</strong></td>
@@ -287,7 +287,7 @@
           <div class="info-grid">
             <div class="info-item">
               <span class="label">Match:</span>
-              <span class="value">{{ scoreboard.match.first_team.team_name }} vs {{ scoreboard.match.second_team.team_name }}</span>
+              <span class="value">{{ scoreboard.match.first_team?.team_name }} vs {{ scoreboard.match.second_team?.team_name }}</span>
             </div>
             <div class="info-item">
               <span class="label">Venue:</span>
@@ -462,12 +462,30 @@ export default {
         });
         const data = await response.json();
         
-        if (data.success) {
-          // WebSocket will handle update, only fetch if WS fails
-          setTimeout(() => {
-            if (!window.Echo) this.fetchScoreboard();
-          }, 500);
+        console.log('📊 API Response:', data);
+        
+        if (response.ok && data.match) {
+          console.log('✅ Match started successfully, updating UI...');
+          // Update UI immediately with API response data
+          this.scoreboard = {
+            match: data.match,
+            current_innings: {
+              total_runs: 0,
+              wickets: 0,
+              overs: 0
+            },
+            current_batsmen: [],
+            current_bowler: null,
+            recent_balls: [],
+            commentary: []
+          };
+          this.loading = false;
           this.$emit('match-started', data);
+          
+          // Also fetch full data for completeness
+          setTimeout(() => {
+            this.fetchScoreboard();
+          }, 1000);
         }
       } catch (error) {
         console.error('Error starting match:', error);
@@ -553,10 +571,24 @@ export default {
         const channel = window.Echo.channel(`match.${this.matchId}`);
         console.log('DEBUG: Channel object:', channel);
         
+        // Add debugging for all events
+        channel.subscribed(() => {
+          console.log('✅ SUBSCRIBED to channel:', `match.${this.matchId}`);
+        });
+        
+        channel.error((error) => {
+          console.error('❌ CHANNEL ERROR:', error);
+        });
+        
         channel.listen('.scoreboard.updated', (data) => {
           console.log('🔥🔥🔥 WEBSOCKET UPDATE RECEIVED 🔥🔥🔥');
           console.log('DEBUG: Data:', data);
           this.updateScoreboardIncremental(data);
+        });
+        
+        // Listen to all events for debugging
+        channel.listen('*', (event, data) => {
+          console.log('📡 ANY EVENT RECEIVED:', event, data);
         });
         
         console.log('DEBUG: WebSocket listener attached');
@@ -568,25 +600,93 @@ export default {
     updateScoreboardFromResponse(data) {
       if (!this.scoreboard) return;
       
+      console.log('🔄 UPDATING SCOREBOARD WITH DATA:', data);
+      console.log('📊 CURRENT SCOREBOARD STATE:', {
+        current_innings: this.scoreboard.current_innings,
+        match: this.scoreboard.match,
+        current_over: this.scoreboard.match?.current_over
+      });
+      
       // Update scores from API response or WebSocket
-      if (data.score) {
-        if (this.scoreboard.current_innings) {
+      // Handle different data structures from WebSocket vs API
+      const scoreData = data.score || data;
+      const matchData = data.match || data;
+      
+      console.log('🎯 PROCESSED SCORE DATA:', scoreData);
+      console.log('🎯 PROCESSED MATCH DATA:', matchData);
+      
+      if (scoreData) {
+        // Update current innings
+        if (this.scoreboard.current_innings && scoreData.runs !== undefined) {
+          console.log('📈 UPDATING INNINGS:', {
+            old_runs: this.scoreboard.current_innings.total_runs,
+            new_runs: scoreData.runs,
+            old_wickets: this.scoreboard.current_innings.wickets,
+            new_wickets: scoreData.wickets,
+            old_overs: this.scoreboard.current_innings.overs,
+            new_overs: scoreData.overs
+          });
+          
           Object.assign(this.scoreboard.current_innings, {
-            total_runs: data.score.runs,
-            wickets: data.score.wickets,
-            overs: data.score.overs
+            total_runs: scoreData.runs,
+            wickets: scoreData.wickets || this.scoreboard.current_innings.wickets,
+            overs: scoreData.overs || this.scoreboard.current_innings.overs
+          });
+          
+          console.log('✅ INNINGS UPDATED TO:', this.scoreboard.current_innings);
+        }
+        
+        // Update match scores and current over
+        if (this.scoreboard.match) {
+          console.log('🏏 UPDATING MATCH:', {
+            old_over: this.scoreboard.match.current_over,
+            new_over: scoreData.current_over,
+            old_first_score: this.scoreboard.match.first_team_score,
+            new_first_score: scoreData.first_team_score,
+            old_second_score: this.scoreboard.match.second_team_score,
+            new_second_score: scoreData.second_team_score
+          });
+          
+          // Update current over
+          this.scoreboard.match.current_over = scoreData.current_over || this.scoreboard.match.current_over;
+          
+          // Update team scores - construct from innings data if not provided
+          if (scoreData.first_team_score) {
+            this.scoreboard.match.first_team_score = scoreData.first_team_score;
+          } else if (this.scoreboard.current_innings) {
+            // Construct score from innings data and assign to correct team
+            const runs = this.scoreboard.current_innings.total_runs || 0;
+            const wickets = this.scoreboard.current_innings.wickets || 0;
+            const scoreString = `${runs}/${wickets}`;
+            
+            // Only update if the team score is not already set (preserve first innings score)
+            if (this.scoreboard.current_innings.batting_team_id === this.scoreboard.match.first_team_id) {
+              if (!this.scoreboard.match.first_team_score || this.scoreboard.match.first_team_score === '0/0') {
+                this.scoreboard.match.first_team_score = scoreString;
+              }
+            } else if (this.scoreboard.current_innings.batting_team_id === this.scoreboard.match.second_team_id) {
+              if (!this.scoreboard.match.second_team_score || this.scoreboard.match.second_team_score === '0/0') {
+                this.scoreboard.match.second_team_score = scoreString;
+              }
+            }
+          }
+          
+          if (scoreData.second_team_score) {
+            this.scoreboard.match.second_team_score = scoreData.second_team_score;
+          }
+          
+          console.log('✅ MATCH UPDATED TO:', {
+            current_over: this.scoreboard.match.current_over,
+            first_team_score: this.scoreboard.match.first_team_score,
+            second_team_score: this.scoreboard.match.second_team_score
           });
         }
-        Object.assign(this.scoreboard.match, {
-          current_over: data.score.current_over,
-          first_team_score: data.score.first_team_score,
-          second_team_score: data.score.second_team_score
-        });
       }
       
-      if (data.status) {
-        this.scoreboard.match.status = data.status;
-        if (data.status === 'completed') {
+      if (matchData.status) {
+        console.log('🔄 UPDATING STATUS:', matchData.status);
+        this.scoreboard.match.status = matchData.status;
+        if (matchData.status === 'completed') {
           this.isAutoSimulating = false;
         }
       }
@@ -620,6 +720,28 @@ export default {
           created_at: new Date().toISOString()
         };
         this.scoreboard.commentary = [newCommentary, ...this.scoreboard.commentary.slice(0, 19)];
+      }
+      
+      // Update current batsmen and bowler stats if provided
+      if (data.current_batsmen) {
+        console.log('🏏 UPDATING CURRENT BATSMEN:', data.current_batsmen);
+        this.scoreboard.current_batsmen = data.current_batsmen;
+      }
+      
+      if (data.current_bowler) {
+        console.log('🎯 UPDATING CURRENT BOWLER:', data.current_bowler);
+        this.scoreboard.current_bowler = data.current_bowler;
+      }
+      
+      // Update batting and bowling stats arrays if provided
+      if (data.batting_stats) {
+        console.log('📊 UPDATING BATTING STATS:', data.batting_stats);
+        this.scoreboard.batting_stats = data.batting_stats;
+      }
+      
+      if (data.bowling_stats) {
+        console.log('🎳 UPDATING BOWLING STATS:', data.bowling_stats);
+        this.scoreboard.bowling_stats = data.bowling_stats;
       }
     },
     
@@ -679,6 +801,14 @@ export default {
         dismissal += ` b ${player.bowler_name}`;
       }
       return dismissal;
+    },
+
+    formatOverNumber(overNumber) {
+      if (!overNumber && overNumber !== 0) return '';
+      // Convert over number to "over.ball" format
+      const over = Math.floor(overNumber);
+      const ball = Math.round((overNumber - over) * 10);
+      return `${over}.${ball}`;
     }
   },
   watch: {
