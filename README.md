@@ -56,14 +56,6 @@ A comprehensive cricket league management platform built with **Laravel 12** and
 - **Recent Form** - Performance trend analysis
 - **Team Recommendations** - AI-suggested best XI selection
 
-### 🏆 Gamification System
-- **Points System** - Earn points for engagement
-- **Achievements** - 10+ unlockable achievements (Common to Legendary)
-- **Leaderboards** - Global, weekly, and monthly rankings
-- **User Levels** - Progressive level system (1000 points per level)
-- **Prediction Game** - Make predictions and earn rewards
-- **Transaction History** - Complete point audit trail
-- **Badges & Rewards** - Visual achievement system
 
 ### 📡 Real-Time Features
 - **WebSocket Broadcasting** - Live updates via Laravel Reverb
@@ -196,15 +188,6 @@ Visit: `http://localhost:8000`
 
 ## 🚀 Quick Start
 
-### Initialize Achievements
-```bash
-php artisan tinker
-```
-```php
-$service = new \App\Services\GamificationService();
-$service->initializeAchievements();
-exit
-```
 
 ### Simulate Your First Match
 ```bash
@@ -220,7 +203,6 @@ curl -X POST http://localhost:8000/api/v1/live-matches/1/auto-simulate
 - **Dashboard**: `http://localhost:8000/`
 - **Live Matches**: `http://localhost:8000/live-matches`
 - **Predictions**: `http://localhost:8000/predictions`
-- **Gamification**: `http://localhost:8000/gamification`
 - **Analytics**: `http://localhost:8000/analytics`
 
 ---
@@ -254,7 +236,6 @@ cricket-league-laravel/
 │   │   ├── Controllers/
 │   │   │   ├── LiveMatchController.php
 │   │   │   ├── PredictionController.php
-│   │   │   ├── GamificationController.php
 │   │   │   ├── MatchController.php
 │   │   │   ├── TeamController.php
 │   │   │   ├── PlayerController.php
@@ -269,16 +250,13 @@ cricket-league-laravel/
 │   │   ├── MatchInnings.php
 │   │   ├── BallByBall.php
 │   │   ├── PlayerMatchStats.php
-│   │   ├── Achievement.php
-│   │   ├── UserPoints.php
 │   │   ├── MatchPrediction.php
 │   │   └── ...
 │   └── Services/
 │       ├── MatchSimulationEngine.php  # Core simulation logic
 │       ├── CommentaryGenerator.php    # AI commentary
 │       ├── LiveScoreboardService.php  # Scoreboard data
-│       ├── AIMatchPredictionService.php
-│       └── GamificationService.php
+│       └── AIMatchPredictionService.php
 ├── database/
 │   ├── migrations/                    # 25+ database migrations
 │   └── seeders/
@@ -289,7 +267,6 @@ cricket-league-laravel/
 │   │   │   ├── LiveMatches.vue
 │   │   │   ├── LiveMatchDetail.vue
 │   │   │   ├── Predictions.vue
-│   │   │   ├── Gamification.vue
 │   │   │   └── ...
 │   │   ├── components/
 │   │   │   ├── LiveScoreboard.vue     # Real-time scoreboard component
@@ -332,14 +309,6 @@ GET    /api/v1/predictions/player/{id}/analysis  # Player analysis
 GET    /api/v1/predictions/team/{id}/recommend   # Team recommendation
 ```
 
-### Gamification (Auth Required)
-```
-GET    /api/v1/gamification/stats                # User stats
-GET    /api/v1/gamification/leaderboard          # Leaderboard
-GET    /api/v1/gamification/achievements         # All achievements
-GET    /api/v1/gamification/transactions         # Point history
-POST   /api/v1/gamification/achievements/init    # Initialize achievements
-```
 
 ### CRUD Operations
 ```
@@ -368,11 +337,6 @@ DELETE /api/v1/countries/{id}                    # Delete country
 - `player_match_stats` - Player statistics
 - `match_commentary` - Commentary feed
 
-### Gamification Tables
-- `achievements` - Achievement definitions
-- `user_achievements` - Unlocked achievements
-- `user_points` - User points and levels
-- `point_transactions` - Point history
 
 ### Prediction Tables
 - `match_predictions` - AI predictions
@@ -442,13 +406,6 @@ echo "Predicted Winner: " . $prediction->predictedWinner->team_name;
 echo "Confidence: " . $prediction->confidence_score . "%";
 ```
 
-### Award Points to User
-```php
-use App\Services\GamificationService;
-
-$service = new GamificationService();
-$service->awardPoints($user, 50, 'Correct prediction', 'prediction');
-```
 
 ---
 
@@ -474,18 +431,6 @@ Contextual commentary generated for:
 - Partnership milestones
 - Special achievements (hat-tricks, five-wickets)
 
-### Gamification
-**Point Sources:**
-- Watch match: +10 points
-- Make prediction: +5 points
-- Correct prediction: +50 points
-- Unlock achievement: Variable points
-
-**Achievement Categories:**
-- Points-based (100, 1000, 10000 points)
-- Prediction-based (10 correct, 80% accuracy)
-- Engagement-based (10 matches, 50 matches)
-- Level milestones (Level 5, 10)
 
 ---
 
@@ -611,10 +556,10 @@ For issues, questions, or suggestions:
 
 ### Version 2.5 - Enhanced Features
 - ✅ Added AI-powered match predictions
-- ✅ Implemented comprehensive gamification system
 - ✅ Enhanced search functionality
 - ✅ Added pagination for large datasets
 - ✅ Improved API responses with proper resources
+- ✅ Removed gamification system (simplified architecture)
 
 ---
 
