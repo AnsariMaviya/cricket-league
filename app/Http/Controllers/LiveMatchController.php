@@ -6,6 +6,9 @@ use App\Models\CricketMatch;
 use App\Models\MatchCommentary;
 use App\Services\MatchSimulationEngine;
 use App\Services\LiveScoreboardService;
+use App\Services\CacheService;
+use App\Services\MonitoringService;
+use App\Services\QueryOptimizationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,6 +25,8 @@ class LiveMatchController extends Controller
 
     public function startMatch($matchId)
     {
+        $startTime = microtime(true);
+        
         $match = CricketMatch::findOrFail($matchId);
         
         // If match is not scheduled, reset it first (for stopped/completed matches)
@@ -47,12 +52,22 @@ class LiveMatchController extends Controller
             $match->commentary()->delete();
         }
 
-        $this->simulationEngine->startMatch($match);
-
+        $result = $this->simulationEngine->startMatch($match);
+        
+        // Cache the updated match
+        CacheService::cacheMatch($match->match_id, $result->fresh());
+        
+        // Log performance
+        $duration = microtime(true) - $startTime;
+        MonitoringService::logPerformance('match_start', $duration, ['match_id' => $matchId]);
+        MonitoringService::logApiRequest('/api/v1/live-matches/{id}/start', 'POST', 200, $duration);
+        
+        // Invalidate related caches
+        CacheService::invalidateMatchCache($matchId);
+        
         return response()->json([
-            'success' => true,
             'message' => 'Match started successfully',
-            'match' => $match->fresh(),
+            'match' => $result->load(['venue', 'firstTeam', 'secondTeam']),
         ]);
     }
 

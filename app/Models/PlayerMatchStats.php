@@ -63,4 +63,10 @@ class PlayerMatchStats extends Model
         $this->economy = round($this->runs_conceded / $this->overs_bowled, 2);
         return $this->economy;
     }
+
+    public function recalculateOvers()
+    {
+        $this->overs_bowled = $this->balls_bowled / 6;
+        return $this->overs_bowled;
+    }
 }

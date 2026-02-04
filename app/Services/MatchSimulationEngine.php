@@ -8,6 +8,7 @@ use App\Models\BallByBall;
 use App\Models\PlayerMatchStats;
 use App\Models\Player;
 use App\Models\MatchCommentary;
+use Illuminate\Support\Facades\Log;
 use App\Models\Partnership;
 use App\Models\FallOfWicket;
 use App\Events\MatchUpdated;
@@ -305,7 +306,7 @@ class MatchSimulationEngine
         // Clear cache
         \Illuminate\Support\Facades\Cache::forget("match_scoreboard_{$this->match->match_id}");
         
-        // Broadcast lightweight update with only changed data
+        // Broadcast lightweight update with only essential data
         broadcast(new \App\Events\ScoreboardUpdated($this->match->match_id, [
             'ball' => [
                 'over' => $ball->over_number,
@@ -322,6 +323,22 @@ class MatchSimulationEngine
                 'current_over' => $this->match->current_over,
             ],
             'status' => $this->match->status,
+            'current_batsmen' => $this->getCurrentBatsmen(),
+            'current_bowler' => $this->getCurrentBowler(),
+            // Send only current player stats, not all stats
+            'batting_stats' => collect($this->getCurrentBatsmen())->map(function($batsman) {
+                return [
+                    'stat_id' => $batsman['stat_id'],
+                    'player_id' => $batsman['player_id'],
+                    'runs_scored' => $batsman['runs_scored'],
+                    'balls_faced' => $batsman['balls_faced'],
+                    'fours' => $batsman['fours'],
+                    'sixes' => $batsman['sixes'],
+                    'strike_rate' => $batsman['strike_rate'],
+                    'dismissal_text' => $batsman['dismissal_text']
+                ];
+            }),
+            'bowling_stats' => [$this->getCurrentBowler()],
         ]))->toOthers();
 
         return $ball;
@@ -393,11 +410,15 @@ class MatchSimulationEngine
             ->first();
 
         if ($bowlerStats) {
-            $bowlerStats->balls_bowled += 1;
+            // Only count legal deliveries (no wides/no-balls)
+            if ($ball->extra_type === 'none' || $ball->extra_type === 'bye' || $ball->extra_type === 'leg_bye') {
+                $bowlerStats->balls_bowled += 1;
+            }
             $bowlerStats->runs_conceded += $ball->runs_scored + $ball->extra_runs;
             if ($ball->is_wicket) $bowlerStats->wickets_taken += 1;
-            $bowlerStats->overs_bowled = floor($bowlerStats->balls_bowled / 6);
+            $bowlerStats->overs_bowled = $bowlerStats->balls_bowled / 6;
             $bowlerStats->calculateEconomy();
+            $bowlerStats->recalculateOvers();
             $bowlerStats->save();
         }
     }
@@ -445,17 +466,52 @@ class MatchSimulationEngine
             $batsmanStats->save();
         }
         
+        // Find which batsman got out (striker or non-striker)
+        $outBatsmanIndex = null;
+        if ($this->batsmen[0] && $this->batsmen[0]->player_id == $ball->batsman_id) {
+            $outBatsmanIndex = 0;
+        } elseif ($this->batsmen[1] && $this->batsmen[1]->player_id == $ball->batsman_id) {
+            $outBatsmanIndex = 1;
+        }
+        
+        // Get next batsman who hasn't batted yet
         $nextBatsman = Player::where('team_id', $this->currentInnings->batting_team_id)
             ->whereNotIn('player_id', PlayerMatchStats::where('match_id', $this->match->match_id)
                 ->where('team_id', $this->currentInnings->batting_team_id)
                 ->where('balls_faced', '>', 0)
                 ->pluck('player_id'))
+            ->inRandomOrder()
             ->first();
 
-        if ($nextBatsman) {
-            $this->batsmen[0] = $nextBatsman;
-            $this->match->current_batsman_1 = $nextBatsman->player_id;
+        if ($nextBatsman && $outBatsmanIndex !== null) {
+            // Replace the out batsman with new batsman
+            $this->batsmen[$outBatsmanIndex] = $nextBatsman;
+            
+            // Update current batsmen in match
+            $this->match->current_batsman_1 = $this->batsmen[0]?->player_id;
+            $this->match->current_batsman_2 = $this->batsmen[1]?->player_id;
             $this->match->save();
+            
+            // Initialize stats for new batsman
+            PlayerMatchStats::updateOrCreate(
+                ['match_id' => $this->match->match_id, 'player_id' => $nextBatsman->player_id],
+                [
+                    'team_id' => $this->currentInnings->batting_team_id,
+                    'runs_scored' => 0,
+                    'balls_faced' => 0,
+                    'fours' => 0,
+                    'sixes' => 0,
+                    'wickets_taken' => 0,
+                    'overs_bowled' => 0,
+                    'balls_bowled' => 0,
+                    'runs_conceded' => 0,
+                    'maidens' => 0,
+                    'economy' => 0.00,
+                    'catches' => 0,
+                    'stumpings' => 0,
+                    'run_outs' => 0,
+                ]
+            );
         }
     }
     
@@ -552,15 +608,88 @@ class MatchSimulationEngine
             'type' => 'over_summary',
         ]);
         
-        $newBowler = Player::where('team_id', $this->currentInnings->bowling_team_id)
-            ->where('role', 'LIKE', '%Bowler%')
-            ->where('player_id', '!=', $this->bowler->player_id)
+        // MUST rotate bowler - no consecutive overs by same bowler
+        // CRITICAL: Check if current bowler has reached 10-over limit BEFORE allowing next over
+        $currentBowlerStats = PlayerMatchStats::where('match_id', $this->match->match_id)
+            ->where('player_id', $this->bowler->player_id)
+            ->first();
+        
+        Log::info("Bowler rotation check - Current bowler: {$this->bowler->player_id}, Overs: " . ($currentBowlerStats ? $currentBowlerStats->overs_bowled : 0));
+        
+        // If current bowler has reached 10 overs, MUST rotate
+        if ($currentBowlerStats && $currentBowlerStats->overs_bowled >= 10) {
+            Log::warning("Current bowler {$this->bowler->player_id} has reached 10 overs, forcing rotation");
+            $needsNewBowler = true;
+        } else {
+            $needsNewBowler = true; // Still rotate to prevent consecutive overs
+        }
+        
+        // Debug: Check all bowlers in the team
+        $allBowlers = Player::where('team_id', $this->currentInnings->bowling_team_id)
+            ->where(function($query) {
+                $query->where('role', 'LIKE', '%Bowler%')
+                      ->orWhere('role', 'LIKE', '%All-rounder%');
+            })
+            ->get();
+        Log::info("All bowlers in team: " . $allBowlers->pluck('player_id')->implode(', '));
+        
+        // Get available bowlers who haven't reached their limit (10 overs for ODI)
+        $availableBowlers = Player::where('team_id', $this->currentInnings->bowling_team_id)
+            ->where('player_id', '!=', $this->bowler->player_id) // Exclude current bowler
+            ->where(function($query) {
+                $query->where('role', 'LIKE', '%Bowler%')
+                      ->orWhere('role', 'LIKE', '%All-rounder%');
+            })
+            ->where(function($query) {
+                $query->whereHas('matchStats', function($q) {
+                    $q->where('match_id', $this->match->match_id)
+                      ->where('overs_bowled', '<', 10); // Haven't reached ODI limit
+                })->orWhereDoesntHave('matchStats'); // Include bowlers with no stats yet
+            })
             ->inRandomOrder()
             ->first();
 
-        if ($newBowler) {
-            $this->bowler = $newBowler;
-            $this->match->current_bowler = $newBowler->player_id;
+        // Debug: Log available bowlers
+        Log::info("Available bowlers found: " . ($availableBowlers ? $availableBowlers->player_id : 'None'));
+        
+        // Debug: Check why no bowlers were found
+        if (!$availableBowlers) {
+            $allOtherBowlers = Player::where('team_id', $this->currentInnings->bowling_team_id)
+                ->where('player_id', '!=', $this->bowler->player_id)
+                ->where(function($query) {
+                    $query->where('role', 'LIKE', '%Bowler%')
+                          ->orWhere('role', 'LIKE', '%All-rounder%');
+                })
+                ->get();
+            
+            Log::info("Other bowlers (excluding current): " . $allOtherBowlers->pluck('player_id')->implode(', '));
+            
+            foreach ($allOtherBowlers as $bowler) {
+                $stats = PlayerMatchStats::where('match_id', $this->match->match_id)
+                    ->where('player_id', $bowler->player_id)
+                    ->first();
+                $overs = $stats ? $stats->overs_bowled : 0;
+                Log::info("Bowler {$bowler->player_id} has {$overs} overs bowled");
+            }
+        }
+
+        // If no available bowlers found (all reached limit), check if we can continue with current bowler
+        if (!$availableBowlers) {
+            if ($currentBowlerStats && $currentBowlerStats->overs_bowled >= 10) {
+                // Current bowler also reached limit - this is a problem!
+                Log::error("All bowlers have reached 10-over limit! Match cannot continue.");
+                // For now, allow current bowler to continue (this shouldn't happen in real cricket)
+                $needsNewBowler = false;
+            } else {
+                $needsNewBowler = false;
+                Log::warning("No other bowlers available, current bowler continues");
+            }
+        }
+
+        if ($needsNewBowler && $availableBowlers) {
+            Log::info("Rotating bowler from {$this->bowler->player_id} to {$availableBowlers->player_id}");
+            $this->bowler = $availableBowlers;
+            $this->match->current_bowler = $availableBowlers->player_id;
             $this->match->save();
         }
 
@@ -604,9 +733,20 @@ class MatchSimulationEngine
 
     protected function startSecondInnings()
     {
+        // Preserve first innings score before starting second innings
+        $firstInningsScore = $this->currentInnings->total_runs . '/' . $this->currentInnings->wickets;
+        
         $this->match->current_innings = 2;
         $this->match->current_over = 0;
         $this->match->target_score = $this->currentInnings->total_runs + 1;
+        
+        // Set first team score permanently
+        if ($this->currentInnings->batting_team_id === $this->match->first_team_id) {
+            $this->match->first_team_score = $firstInningsScore;
+        } else {
+            $this->match->second_team_score = $firstInningsScore;
+        }
+        
         $this->match->save();
 
         $firstInningsBattingTeam = $this->currentInnings->batting_team_id;
@@ -620,6 +760,15 @@ class MatchSimulationEngine
             'bowling_team_id' => $firstInningsBattingTeam,
             'innings_number' => 2,
             'status' => 'in_progress',
+        ]);
+
+        Log::info("🔄 Second innings started", [
+            'first_innings_score' => $firstInningsScore,
+            'target_score' => $this->match->target_score,
+            'batting_team_id' => $secondInningsBattingTeam,
+            'bowling_team_id' => $firstInningsBattingTeam,
+            'first_team_score' => $this->match->first_team_score,
+            'second_team_score' => $this->match->second_team_score,
         ]);
 
         $this->selectPlayers();
@@ -694,6 +843,89 @@ class MatchSimulationEngine
         }
 
         return $this->match->fresh();
+    }
+
+    protected function getCurrentBatsmen()
+    {
+        $batsmanIds = [$this->match->current_batsman_1];
+        if ($this->match->current_batsman_2) {
+            $batsmanIds[] = $this->match->current_batsman_2;
+        }
+        
+        return PlayerMatchStats::where('match_id', $this->match->match_id)
+            ->where('team_id', $this->currentInnings->batting_team_id)
+            ->whereIn('player_id', $batsmanIds)
+            ->with('player')
+            ->get()
+            ->map(function ($stat) {
+                return [
+                    'stat_id' => $stat->stat_id,
+                    'player_id' => $stat->player_id,
+                    'team_id' => $stat->team_id,
+                    'runs_scored' => $stat->runs_scored,
+                    'balls_faced' => $stat->balls_faced,
+                    'fours' => $stat->fours,
+                    'sixes' => $stat->sixes,
+                    'strike_rate' => $stat->strike_rate,
+                    'player' => $stat->player,
+                    'dismissal_text' => $stat->dismissal_text
+                ];
+            });
+    }
+
+    protected function getCurrentBowler()
+    {
+        return PlayerMatchStats::where('match_id', $this->match->match_id)
+            ->where('player_id', $this->match->current_bowler)
+            ->with('player')
+            ->first()
+            ?->toArray();
+    }
+
+    protected function getBattingStats()
+    {
+        return PlayerMatchStats::where('match_id', $this->match->match_id)
+            ->where('team_id', $this->currentInnings->batting_team_id)
+            ->with('player')
+            ->orderBy('runs_scored', 'desc')
+            ->get()
+            ->map(function ($stat) {
+                return [
+                    'stat_id' => $stat->stat_id,
+                    'player_id' => $stat->player_id,
+                    'team_id' => $stat->team_id,
+                    'runs_scored' => $stat->runs_scored,
+                    'balls_faced' => $stat->balls_faced,
+                    'fours' => $stat->fours,
+                    'sixes' => $stat->sixes,
+                    'strike_rate' => $stat->strike_rate,
+                    'player' => $stat->player,
+                    'dismissal_text' => $stat->dismissal_text
+                ];
+            });
+    }
+
+    protected function getBowlingStats()
+    {
+        return PlayerMatchStats::where('match_id', $this->match->match_id)
+            ->where('team_id', $this->currentInnings->bowling_team_id)
+            ->with('player')
+            ->orderBy('wickets_taken', 'desc')
+            ->get()
+            ->map(function ($stat) {
+                return [
+                    'stat_id' => $stat->stat_id,
+                    'player_id' => $stat->player_id,
+                    'team_id' => $stat->team_id,
+                    'overs_bowled' => $stat->overs_bowled,
+                    'balls_bowled' => $stat->balls_bowled,
+                    'runs_conceded' => $stat->runs_conceded,
+                    'wickets_taken' => $stat->wickets_taken,
+                    'maidens' => $stat->maidens,
+                    'economy' => $stat->economy,
+                    'player' => $stat->player
+                ];
+            });
     }
 }
 
